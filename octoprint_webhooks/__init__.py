@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
-import urllib.parse
-import urllib.request
 import json
+import requests
 
 import octoprint.plugin
 from octoprint.events import eventManager, Events
@@ -54,9 +53,10 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			message = "There was an error."
 		if topic == "Unknown":
 			return
+		self._logger.info("P EVENT " + topic + " - " + message)
 		# Send the notification
+		# 1) Call the API
 		try:
-			# 1) Call the API
 			url = self._settings.get(["url"])
 			apiSecret = self._settings.get(["apiSecret"])
 			deviceIdentifier = self._settings.get(["deviceIdentifier"])
@@ -68,13 +68,11 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				"message": message,
 				"extra": extra
 			}
-			data = urllib.parse.urlencode(values).encode()
-			req = urllib.request.Request(url, data=data, headers=headers)
-			response = urllib.request.urlopen(req)
-			result = json.loads(response.read())
-			self._logger.info("API Success " + event + " " + json.dumps(result))
-		except:
-			self._logger.info("API Failed " + event + " " + json.dumps(payload))
+			response = requests.post(url, data=values)
+			result = json.loads(response.text)
+			self._logger.info("API SUCCESS: " + event + " " + json.dumps(result))
+		except requests.exceptions.RequestException as e:
+			self._logger.info("API ERROR" + str(e))
 
 	def recv_callback(self, comm_instance, line, *args, **kwargs):
 		# Found keyword, fire event and block until other text is received
@@ -89,7 +87,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 
 
 __plugin_name__ = "Webhooks"
-__plugin_pythoncompat__ = ">=2.7,<3"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 
 def __plugin_load__():
