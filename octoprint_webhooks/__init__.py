@@ -1,79 +1,97 @@
-# coding=utf-8
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, unicode_literals
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
+import urllib.parse
+import urllib.request
+import json
 
 import octoprint.plugin
+from octoprint.events import eventManager, Events
 
-class WebhooksPlugin(octoprint.plugin.SettingsPlugin,
-                     octoprint.plugin.AssetPlugin,
-                     octoprint.plugin.TemplatePlugin):
+class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin, octoprint.plugin.EventHandlerPlugin):
+    def on_after_startup(self):
+        self.triggered = False
+        self._logger.info("Hello World from WebhooksPlugin! " + self._settings.get(["url"]))
 
-	##~~ SettingsPlugin mixin
+    def get_settings_defaults(self):
+        return dict(url="https://www.darwincloud.com",apiSecret="abcd1234",deviceIdentifier="Printer1")
 
-	def get_settings_defaults(self):
-		return dict(
-			# put your plugin's default settings here
-		)
+    def get_template_configs(self):
+        return [
+            dict(type="navbar", custom_bindings=False),
+            dict(type="settings", custom_bindings=False)
+        ]
 
-	##~~ AssetPlugin mixin
+    def register_custom_events(self, *args, **kwargs):
+        return ["notify"]
 
-	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
-		return dict(
-			js=["js/webhooks.js"],
-			css=["css/webhooks.css"],
-			less=["less/webhooks.less"]
-		)
+    def on_event(self, event, payload):
+        topic = "Unknown"
+        message = "Unknown"
+        extra = payload
 
-	##~~ Softwareupdate hook
+        if event == Events.PRINT_STARTED:
+            topic = "Print Started"
+            message = "Your print has started."
+        elif event == Events.PRINT_DONE:
+            topic = "Print Done"
+            message = "Your print is done."
+        elif event == Events.PRINT_FAILED:
+            topic = "Print Failed"
+            message = "Something went wrong and your print has failed."
+        elif event == Events.PRINT_PAUSED:
+            topic = "Print Paused"
+            message = "Your print has paused. You might need to change the filament color."
+        elif event == Events.PLUGIN_WEBHOOKS_NOTIFY:
+            topic = "User Action Needed"
+            message = "User action is needed. You might need to change the filament color."
+        elif event == Events.ERROR:
+            topic = "Error"
+            message = "There was an error."
+        if topic == "Unknown":
+            return
+        # Send the notification
+        try:
+            # 1) Call the API
+            url = self._settings.get(["url"])
+            apiSecret = self._settings.get(["apiSecret"])
+            deviceIdentifier = self._settings.get(["deviceIdentifier"])
+            headers = {}
+            values = {
+                "deviceIdentifier":deviceIdentifier,
+                "apiSecret":apiSecret,
+                "topic":topic,
+                "message":message,
+                "extra":extra
+            }
+            data = urllib.parse.urlencode(values).encode()
+            req = urllib.request.Request(url, data=data, headers=headers)
+            response = urllib.request.urlopen(req)
+            result = json.loads(response.read())
+            self._logger.info("API Success " + event + " " + json.dumps(result))
+        except:
+            self._logger.info("API Failed " + event + " " + json.dumps(payload))
 
-	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://docs.octoprint.org/en/master/bundledplugins/softwareupdate.html
-		# for details.
-		return dict(
-			webhooks=dict(
-				displayName="Webhooks Plugin",
-				displayVersion=self._plugin_version,
+    def recv_callback(self, comm_instance, line, *args, **kwargs):
+        # Found keyword, fire event and block until other text is received
+        if "echo:busy: paused for user" in line:
+            if not self.triggered:
+                eventManager().fire(Events.PLUGIN_WEBHOOKS_NOTIFY)
+                self.triggered = True
+        # Other text, we may fire another event if we encounter "paused for user" again
+        else:
+            self.triggered = False
+        return line
 
-				# version check: github repository
-				type="github_release",
-				user="2blane",
-				repo="OctoPrint-Webhooks",
-				current=self._plugin_version,
-
-				# update method: pip
-				pip="https://github.com/2blane/OctoPrint-Webhooks/archive/{target_version}.zip"
-			)
-		)
-
-
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Webhooks Plugin"
-
-# Starting with OctoPrint 1.4.0 OctoPrint will also support to run under Python 3 in addition to the deprecated
-# Python 2. New plugins should make sure to run under both versions for now. Uncomment one of the following
-# compatibility flags according to what Python versions your plugin supports!
-#__plugin_pythoncompat__ = ">=2.7,<3" # only python 2
-#__plugin_pythoncompat__ = ">=3,<4" # only python 3
-#__plugin_pythoncompat__ = ">=2.7,<4" # python 2 and 3
+__plugin_name__ = "Webhooks"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
-	global __plugin_implementation__
-	__plugin_implementation__ = WebhooksPlugin()
-
-	global __plugin_hooks__
-	__plugin_hooks__ = {
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
-	}
-
+    global __plugin_implementation__
+    __plugin_implementation__ = WebhooksPlugin()
+    global __plugin_hooks__
+    __plugin_hooks__ = {
+        #"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+        "octoprint.comm.protocol.gcode.received": __plugin_implementation__.recv_callback,
+        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events
+    }
