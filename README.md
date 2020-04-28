@@ -9,7 +9,7 @@ or manually using this URL:
 
     https://github.com/2blane/OctoPrint-Webhooks/archive/master.zip
 
-Once you've installed the plugin, go to the settings page for this plugin. The page is called "webhooks".
+Once you've installed the plugin, go to the settings page for this plugin. The page is called "Webhooks".
 Change the following:
 
 #### URL
