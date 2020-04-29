@@ -13,6 +13,19 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 	def __init__(self):
 		self.triggered = False
 
+	def get_update_information(self, *args, **kwargs):
+		return dict(
+			webhooks=dict(
+				displayName=self._plugin_name,
+				displayVersion=self._plugin_version,
+				type="github_release",
+				current=self._plugin_version,
+				user="2blane",
+				repo="OctoPrint-Webhooks",
+				pip="https://github.com/2blane/OctoPrint-Webhooks/archive/{target}.zip"
+			)
+		)
+
 	def on_after_startup(self):
 		self._logger.info("Hello World from WebhooksPlugin! " + self._settings.get(["url"]))
 
@@ -95,7 +108,7 @@ def __plugin_load__():
 	__plugin_implementation__ = WebhooksPlugin()
 	global __plugin_hooks__
 	__plugin_hooks__ = {
-		# "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
 		"octoprint.comm.protocol.gcode.received": __plugin_implementation__.recv_callback,
 		"octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events
 	}
