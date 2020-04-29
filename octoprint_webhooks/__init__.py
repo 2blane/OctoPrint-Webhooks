@@ -9,7 +9,7 @@ from octoprint.events import eventManager, Events
 
 
 class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin,
-					 octoprint.plugin.EventHandlerPlugin):
+					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin):
 	def __init__(self):
 		self.triggered = False
 
@@ -30,13 +30,21 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		self._logger.info("Hello World from WebhooksPlugin! " + self._settings.get(["url"]))
 
 	def get_settings_defaults(self):
-		return dict(url="https://www.darwincloud.com", apiSecret="abcd1234", deviceIdentifier="Printer1")
+		return dict(url="https://www.darwincloud.com", apiSecret="abcd1234", deviceIdentifier="Printer1",
+					eventPrintStarted=True, eventPrintDone=True, eventPrintFailed=True, eventPrintPaused=True,
+					eventUserActionNeeded=True, eventError=True)
 
 	def get_template_configs(self):
 		return [
 			dict(type="navbar", custom_bindings=False),
 			dict(type="settings", custom_bindings=False)
 		]
+
+	def get_assets(self):
+		return dict(
+			js=["js/webhooks.js"],
+			css=["css/webhooks.css"]
+		)
 
 	def register_custom_events(self, *args, **kwargs):
 		return ["notify"]
@@ -46,22 +54,22 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		message = "Unknown"
 		extra = payload
 
-		if event == Events.PRINT_STARTED:
+		if event == Events.PRINT_STARTED and self._settings.get(["eventPrintStarted"]):
 			topic = "Print Started"
 			message = "Your print has started."
-		elif event == Events.PRINT_DONE:
+		elif event == Events.PRINT_DONE and self._settings.get(["eventPrintDone"]):
 			topic = "Print Done"
 			message = "Your print is done."
-		elif event == Events.PRINT_FAILED:
+		elif event == Events.PRINT_FAILED and self._settings.get(["eventPrintFailed"]):
 			topic = "Print Failed"
 			message = "Something went wrong and your print has failed."
-		elif event == Events.PRINT_PAUSED:
+		elif event == Events.PRINT_PAUSED and self._settings.get(["eventPrintPaused"]):
 			topic = "Print Paused"
 			message = "Your print has paused. You might need to change the filament color."
-		elif event == Events.PLUGIN_WEBHOOKS_NOTIFY:
+		elif event == Events.PLUGIN_WEBHOOKS_NOTIFY and self._settings.get(["eventUserActionNeeded"]):
 			topic = "User Action Needed"
 			message = "User action is needed. You might need to change the filament color."
-		elif event == Events.ERROR:
+		elif event == Events.ERROR and self._settings.get(["eventError"]):
 			topic = "Error"
 			message = "There was an error."
 		if topic == "Unknown":
