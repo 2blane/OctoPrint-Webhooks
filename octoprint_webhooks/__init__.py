@@ -30,19 +30,17 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		self._logger.info("Hello World from WebhooksPlugin! " + self._settings.get(["url"]))
 
 	def get_settings_defaults(self):
-		return dict(url="https://www.darwincloud.com", apiSecret="abcd1234", deviceIdentifier="Printer1",
+		return dict(url="", apiSecret="", deviceIdentifier="",
 					eventPrintStarted=True, eventPrintDone=True, eventPrintFailed=True, eventPrintPaused=True,
 					eventUserActionNeeded=True, eventError=True)
 
 	def get_template_configs(self):
 		return [
-			dict(type="navbar", custom_bindings=False),
 			dict(type="settings", custom_bindings=False)
 		]
 
 	def get_assets(self):
 		return dict(
-			js=["js/webhooks.js"],
 			css=["css/webhooks.css"]
 		)
 
