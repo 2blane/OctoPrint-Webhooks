@@ -2,6 +2,10 @@
 
 This allows you to send a webhook to any URL when events happen on OctoPrint.
 
+## [Blog Post](https://www.darwincloud.com/blog/add-webhooks-to-your-3d-printer-with-octoprint/)
+
+I wrote a blog post to explain more about what this plugin is and why I built it.
+
 ## Setup
 
 Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
