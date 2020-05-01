@@ -110,7 +110,10 @@
         <h4 class="control-header" style="margin-bottom:20px">Advanced</h4>
 
         <div class="control-description">
-            These headers will be passed along with each Webhook. Provide a JSON style list.
+            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
+            variables into the JSON. See the
+            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
+            for more details.
         </div>
         <label class="control-label">{{ _('HEADERS') }}</label>
         <div class="controls">
@@ -120,7 +123,10 @@
         </div>
 
         <div class="control-description">
-            The data that will be sent in the webhook. Use @param to insert one of the defined values.
+            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
+            variables into the JSON. See the
+            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
+            for more details.
         </div>
         <label class="control-label">{{ _('DATA') }}</label>
         <div class="controls">
