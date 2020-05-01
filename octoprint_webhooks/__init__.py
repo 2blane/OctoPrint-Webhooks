@@ -8,6 +8,21 @@ import octoprint.plugin
 from octoprint.events import eventManager, Events
 
 
+# Replaces any v in data that start with @param
+# with the v in values. For instance, if data
+# was {"abc":"@p1"}, and values was {"p1":"123"},
+# then @p1 would get replaced with 123 like so:
+# {"abc":"123"}
+def replace_dict_with_data(d, v):
+	for key in d:
+		value = d[key]
+		if value[0:1] == "@":
+			value_key = value[1:]
+			if value_key in v:
+				d[key] = v[value_key]
+	return d
+
+
 class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin,
 					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin):
 	def __init__(self):
@@ -32,16 +47,20 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 	def get_settings_defaults(self):
 		return dict(url="", apiSecret="", deviceIdentifier="",
 					eventPrintStarted=True, eventPrintDone=True, eventPrintFailed=True, eventPrintPaused=True,
-					eventUserActionNeeded=True, eventError=True)
+					eventUserActionNeeded=True, eventError=True,
+					headers='{\n  "Content-Type": "application/json"\n}',
+					data='{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra"\n}'
+					)
 
 	def get_template_configs(self):
 		return [
-			dict(type="settings", custom_bindings=False)
+			dict(type="settings", custom_bindings=True)
 		]
 
 	def get_assets(self):
 		return dict(
-			css=["css/webhooks.css"]
+			css=["css/webhooks.css"],
+			js=["js/webhooks.js"]
 		)
 
 	def register_custom_events(self, *args, **kwargs):
@@ -75,23 +94,39 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		self._logger.info("P EVENT " + topic + " - " + message)
 		# Send the notification
 		# 1) Call the API
+		parsed_headers = False
 		try:
 			url = self._settings.get(["url"])
-			apiSecret = self._settings.get(["apiSecret"])
-			deviceIdentifier = self._settings.get(["deviceIdentifier"])
-			headers = {}
+			api_secret = self._settings.get(["apiSecret"])
+			device_identifier = self._settings.get(["deviceIdentifier"])
+			headers = json.loads(self._settings.get(["headers"]))
+			parsed_headers = True
+			data = json.loads(self._settings.get(["data"]))
+			# 1.1) Create a dictionary of all possible replacement variables.
 			values = {
-				"deviceIdentifier": deviceIdentifier,
-				"apiSecret": apiSecret,
 				"topic": topic,
 				"message": message,
-				"extra": extra
+				"extra": extra,
+				"apiSecret": api_secret,
+				"deviceIdentifier": device_identifier
 			}
-			response = requests.post(url, data=values)
+			# 1.2) Replace the data and header elements that start with @
+			data = replace_dict_with_data(data, values)
+			headers = replace_dict_with_data(headers, values)
+			# 1.3) Send the request
+			print("headers: " + json.dumps(headers) + " - data: " + json.dumps(data))
+			response = requests.post(url, json=data, headers=headers)
 			result = json.loads(response.text)
 			self._logger.info("API SUCCESS: " + event + " " + json.dumps(result))
 		except requests.exceptions.RequestException as e:
 			self._logger.info("API ERROR" + str(e))
+		except Exception as e:
+			if parsed_headers:
+				self._logger.info("JSON Parse DATA Issue")
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="info", autoClose=False, msg="Invalid JSON for Webhooks HEADERS Setting"))
+			else:
+				self._logger.info("JSON Parse HEADERS Issue")
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="info", autoClose=False, msg="Invalid JSON for Webhooks DATA Setting"))
 
 	def recv_callback(self, comm_instance, line, *args, **kwargs):
 		# Found keyword, fire event and block until other text is received

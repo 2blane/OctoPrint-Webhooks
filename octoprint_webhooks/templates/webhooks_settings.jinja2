@@ -12,7 +12,7 @@
         </div>
         <label class="control-label">{{ _('URL') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.webhooks.url">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.url">
         </div>
 
         <div class="control-description">
@@ -21,7 +21,7 @@
         </div>
         <label class="control-label">{{ _('API SECRET') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.webhooks.apiSecret">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
         </div>
 
         <div class="control-description">
@@ -30,7 +30,7 @@
         </div>
         <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.webhooks.deviceIdentifier">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.deviceIdentifier">
         </div>
 
         <!-- ---------- -->
@@ -43,7 +43,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('PRINT STARTED') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventPrintStarted">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintStarted">
                 <span class="control-description2">
                     This is called when a print is started.
                 </span>
@@ -53,7 +53,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('PRINT DONE') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventPrintDone">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintDone">
                 <span class="control-description2">
                     This is called when a print has finished.
                 </span>
@@ -64,7 +64,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('PRINT FAILED') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventPrintFailed">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintFailed">
                 <span class="control-description2">
                     This is called when a print has failed.
                 </span>
@@ -74,7 +74,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('PRINT PAUSED') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventPrintPaused">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintPaused">
                 <span class="control-description2">
                     This is called when a print has been paused.
                 </span>
@@ -84,7 +84,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('USER ACTION NEEDED') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventUserActionNeeded">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventUserActionNeeded">
                 <span class="control-description2">
                     This is called when user action is needed.
                     Can be used with a Prusa printer when a color change is necessary.
@@ -95,11 +95,38 @@
         <div class="control-group">
             <label class="control-label">{{ _('ERROR') }}</label>
             <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.plugins.webhooks.eventError">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventError">
                 <span class="control-description2">
                     This is called when some error has occurred. Can occur due to server troubles, plugins, ...
                 </span>
             </div>
+        </div>
+
+        <!-- -------- -->
+        <!-- -------- -->
+        <!-- ADVANCED -->
+        <!-- -------- -->
+        <!-- -------- -->
+        <h4 class="control-header" style="margin-bottom:20px">Advanced</h4>
+
+        <div class="control-description">
+            These headers will be passed along with each Webhook. Provide a JSON style list.
+        </div>
+        <label class="control-label">{{ _('HEADERS') }}</label>
+        <div class="controls">
+            <button type="button" class="input-button" data-bind="click: resetHeadersToDefaults">Reset to Defaults</button>
+            <textarea class="input-block-level" rows="3" data-bind="value: settings.settings.plugins.webhooks.headers">
+            </textarea>
+        </div>
+
+        <div class="control-description">
+            The data that will be sent in the webhook. Use @param to insert one of the defined values.
+        </div>
+        <label class="control-label">{{ _('DATA') }}</label>
+        <div class="controls">
+            <button type="button" class="input-button" data-bind="click: resetDataToDefaults">Reset to Defaults</button>
+            <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.data">
+            </textarea>
         </div>
     </div>
 </form>

@@ -8,3 +8,15 @@
 .control-header {
     margin: 40px 0px 0px 0px;
 }
+.input-button {
+    margin-bottom: 10px;
+    background: white;
+    border: 1px solid gray;
+    border-radius: 15px;
+    padding: 3px 30px;
+    color: black;
+}
+.input-button:active {
+    color: black;
+    background: #cacbcd;
+}
