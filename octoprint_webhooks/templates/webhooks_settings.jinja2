@@ -7,30 +7,30 @@
         <!-- ------------------ -->
         <!-- ------------------ -->
         <h4 class="control-header">Webhook Parameters</h4>
-        <div class="control-description">
-            This URL will be called whenever one of the enabled events below is triggered.
-        </div>
         <label class="control-label">{{ _('URL') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.url">
         </div>
-
         <div class="control-description">
-            This secret will be passed along with every webhook. You can use this to verify that the webhook is
-            coming from the OctoPrint server. 15-20 random characters should do it.
+            This URL will be called whenever one of the enabled events below is triggered.
         </div>
+
         <label class="control-label">{{ _('API SECRET') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
         </div>
-
         <div class="control-description">
-            If you have multiple printers sending webhooks to the same server, this device identifier will
-            help you distinguish between them. Something like 'Printer1' should work.
+            This secret will be passed along with every webhook. You can use this to verify that the webhook is
+            coming from the OctoPrint server. 15-20 random characters should do it.
         </div>
+
         <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.deviceIdentifier">
+        </div>
+        <div class="control-description">
+            If you have multiple printers sending webhooks to the same server, this device identifier will
+            help you distinguish between them. Something like 'Printer1' should work.
         </div>
 
         <!-- ---------- -->
@@ -109,30 +109,30 @@
         <!-- -------- -->
         <h4 class="control-header" style="margin-bottom:20px">Advanced</h4>
 
-        <div class="control-description">
-            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
-            variables into the JSON. See the
-            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
-            for more details.
-        </div>
         <label class="control-label">{{ _('HEADERS') }}</label>
         <div class="controls">
             <button type="button" class="input-button" data-bind="click: resetHeadersToDefaults">Reset to Defaults</button>
             <textarea class="input-block-level" rows="3" data-bind="value: settings.settings.plugins.webhooks.headers">
             </textarea>
         </div>
-
         <div class="control-description">
             Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
             variables into the JSON. See the
             <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
             for more details.
         </div>
+
         <label class="control-label">{{ _('DATA') }}</label>
         <div class="controls">
             <button type="button" class="input-button" data-bind="click: resetDataToDefaults">Reset to Defaults</button>
             <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.data">
             </textarea>
+        </div>
+        <div class="control-description">
+            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
+            variables into the JSON. See the
+            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
+            for more details.
         </div>
     </div>
 </form>
