@@ -1,45 +1,19 @@
+{% assets "js_client" %}<script type="text/javascript" src="{{ ASSET_URL }}"></script>{% endassets %}
+<script src="{{ url_for("static", filename="js/lib/jquery/jquery.min.js") }}"></script>
+<script src="{{ url_for("static", filename="js/lib/lodash.min.js") }}"></script>
+
 <h2>Webhook Settings</h2>
 <form class="form-horizontal">
     <div class="control-group">
-        <!-- ------------------ -->
-        <!-- ------------------ -->
-        <!-- WEBHOOK PARAMETERS -->
-        <!-- ------------------ -->
-        <!-- ------------------ -->
-        <h4 class="control-header">Webhook Parameters</h4>
-        <div class="control-description">
-            This URL will be called whenever one of the enabled events below is triggered.
-        </div>
-        <label class="control-label">{{ _('URL') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.url">
-        </div>
-
-        <div class="control-description">
-            This secret will be passed along with every webhook. You can use this to verify that the webhook is
-            coming from the OctoPrint server. 15-20 random characters should do it.
-        </div>
-        <label class="control-label">{{ _('API SECRET') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
-        </div>
-
-        <div class="control-description">
-            If you have multiple printers sending webhooks to the same server, this device identifier will
-            help you distinguish between them. Something like 'Printer1' should work.
-        </div>
-        <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.deviceIdentifier">
-        </div>
-
         <!-- ---------- -->
         <!-- ---------- -->
         <!-- EVENT LIST -->
         <!-- ---------- -->
         <!-- ---------- -->
         <h4 class="control-header" style="margin-bottom:20px">Events</h4>
-
+        <div class="control-header-description">
+            Select the events for which you want webhooks sent.
+        </div>
         <div class="control-group">
             <label class="control-label">{{ _('PRINT STARTED') }}</label>
             <div class="controls">
@@ -102,18 +76,57 @@
             </div>
         </div>
 
+        <!-- ------------------ -->
+        <!-- ------------------ -->
+        <!-- WEBHOOK PARAMETERS -->
+        <!-- ------------------ -->
+        <!-- ------------------ -->
+        <h4 class="control-header">Webhook Parameters</h4>
+        <div class="control-header-description">
+            Every time an event occurs, an API request (webhook) will be sent to the URL you provide.
+        </div>
+        <div class="control-description">
+            This URL will be called whenever one of the enabled events below is triggered.
+        </div>
+        <label class="control-label">{{ _('URL') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.url">
+        </div>
+
+        <div class="control-description">
+            This secret will be passed along with every webhook. You can use this to verify that the webhook is
+            coming from the OctoPrint server. 15-20 random characters should do it.
+        </div>
+        <label class="control-label">{{ _('API SECRET') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
+        </div>
+
+        <div class="control-description">
+            If you have multiple printers sending webhooks to the same server, this device identifier will
+            help you distinguish between them. Something like 'Printer1' should work.
+        </div>
+        <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.deviceIdentifier">
+        </div>
+
         <!-- -------- -->
         <!-- -------- -->
         <!-- ADVANCED -->
         <!-- -------- -->
         <!-- -------- -->
-        <h4 class="control-header" style="margin-bottom:20px">Advanced</h4>
-
+        <h4 class="control-header">Advanced</h4>
+        <div class="control-header-description">
+            The advanced parameters allow you to format the Headers and Data that are sent in your webhook.
+            You can use @param to insert variables into the JSON.
+            For instance, if above you set 'DEVICE IDENTIFIER' to "Blane's Printer", then @deviceIdentifer
+            will get replaced with "Blane's Printer" when the webhook request is made.
+            For a list of all possible parameters, see the
+            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>.
+        </div>
         <div class="control-description">
-            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
-            variables into the JSON. See the
-            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
-            for more details.
+            Provide a JSON dictionary of headers that will be passed along with each request.
         </div>
         <label class="control-label">{{ _('HEADERS') }}</label>
         <div class="controls">
@@ -123,16 +136,100 @@
         </div>
 
         <div class="control-description">
-            Provide a JSON dictionary of parameters that will be passed along with each request. Use @param to insert
-            variables into the JSON. See the
-            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>
-            for more details.
+            Provide a JSON dictionary of parameters that will be passed along with each request.
         </div>
         <label class="control-label">{{ _('DATA') }}</label>
         <div class="controls">
             <button type="button" class="input-button" data-bind="click: resetDataToDefaults">Reset to Defaults</button>
             <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.data">
             </textarea>
+        </div>
+
+        <!-- ----- -->
+        <!-- ----- -->
+        <!-- OAUTH -->
+        <!-- ----- -->
+        <!-- ----- -->
+        <h4 class="control-header">OAuth</h4>
+        <div class="control-header-description">
+            OAuth is a common authentication mechanism used by many APIs. If your server requires you to first make an
+            API call trading credentials for tokens so that you can use those tokens in your API request then OAuth
+            should be enabled. You can then access the properties of the OAuth response using something like @access_token
+            in the DATA and HEADER settings above.
+        </div>
+        <div class="control-group">
+            <label class="control-label">{{ _('OAUTH ENABLED') }}</label>
+            <div class="controls">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.oauth">
+                <span class="control-description2">
+                    If enabled, will first make an OAuth call to get credentials, and will then call the webhook.
+                </span>
+            </div>
+        </div>
+
+        <div id="oauth-container" data-bind="css: { 'oAuthContainerBlock': settings.settings.plugins.webhooks.oauth(), 'oAuthContainer': !settings.settings.plugins.webhooks.oauth()}">
+            <!-- OAuth URL -->
+            <div class="control-description">
+                The URL to your OAuth Endpoint. This will be called first to trade credentials for an access token.
+            </div>
+            <label class="control-label">{{ _('OAUTH URL') }}</label>
+            <div class="controls">
+                <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.oauth_url">
+            </div>
+
+            <!-- OAuth Headers -->
+            <div class="control-description">
+                Provide a JSON dictionary of headers that will be passed along with each request.
+                NOTE: @param doesn't work here.
+            </div>
+            <label class="control-label">{{ _('OAUTH HEADERS') }}</label>
+            <div class="controls">
+                <button type="button" class="input-button" data-bind="click: resetOAuthHeadersToDefaults">Reset to Defaults</button>
+                <textarea class="input-block-level" rows="3" data-bind="value: settings.settings.plugins.webhooks.oauth_headers">
+                </textarea>
+            </div>
+
+            <!-- OAuth Data -->
+            <div class="control-description">
+                Provide a JSON dictionary of parameters that will be passed along with each request.
+                NOTE: @param doesn't work here.
+            </div>
+            <label class="control-label">{{ _('OAUTH DATA') }}</label>
+            <div class="controls">
+                <button type="button" class="input-button" data-bind="click: resetOAuthDataToDefaults">Reset to Defaults</button>
+                <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.oauth_data">
+                </textarea>
+            </div>
+        </div>
+
+        <!-- ------------ -->
+        <!-- ------------ -->
+        <!-- TEST WEBHOOK -->
+        <!-- ------------ -->
+        <!-- ------------ -->
+        <h4 class="control-header">Testing</h4>
+        <div class="control-header-description">
+            Send test events to your server to make sure everything is configured correctly.
+            <br/>
+            Note: if a popup appears telling you "Settings update detected", you can choose either option and ignore it.
+        </div>
+        <div class="control-group">
+            <label class="control-label">{{ _('TEST EVENT') }}</label>
+            <div class="controls">
+                <select id="selectTestEvent" class="control-select" data-bind="value: settings.settings.plugins.webhooks.test_event">
+                    <option value="PrintStarted">Print Started</option>
+                    <option value="PrintDone">Print Done</option>
+                    <option value="PrintFailed">Print Failed</option>
+                    <option value="PrintPaused">Print Paused</option>
+                    <option value="plugin_webhooks_notify">User Action Needed</option>
+                    <option value="Error">Error</option>
+                </select>
+                <span class="control-description2">
+                    The event you want to simulate.
+                </span>
+                <br/>
+                <button type="button" class="input-button" data-bind="click: testWebhook" style="margin-top:10px;">Send Test Webhook</button>
+            </div>
         </div>
     </div>
 </form>

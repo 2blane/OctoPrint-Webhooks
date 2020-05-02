@@ -78,7 +78,8 @@ Below is a list of variables you can use in your request.
 @extra - a dictionary of extra data that was passed along by OctoPrint.
 
 
-## Events
+## Events / Topics
+The following is the list of topics that can trigger a webhook.
 
 * Print Started
 

@@ -20,3 +20,16 @@
     color: black;
     background: #cacbcd;
 }
+.oAuthContainer {
+    display: none;
+}
+.oAuthContainerBlock {
+    display: block !important;
+}
+.controls-center {
+    margin: 0px auto;
+    text-align: center;
+}
+.control-header-description {
+    margin: 10px 0px 10px 0px;
+}
