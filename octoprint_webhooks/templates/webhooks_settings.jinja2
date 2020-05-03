@@ -14,7 +14,7 @@
         <div class="control-header-description">
             Select the events for which you want webhooks sent.
         </div>
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('PRINT STARTED') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintStarted">
@@ -24,7 +24,7 @@
             </div>
         </div>
 
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('PRINT DONE') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintDone">
@@ -35,7 +35,7 @@
         </div>
 
 
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('PRINT FAILED') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintFailed">
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('PRINT PAUSED') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintPaused">
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('USER ACTION NEEDED') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventUserActionNeeded">
@@ -66,13 +66,35 @@
             </div>
         </div>
 
-        <div class="control-group">
+        <div class="control-group-event">
             <label class="control-label">{{ _('ERROR') }}</label>
             <div class="controls">
                 <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventError">
                 <span class="control-description2">
                     This is called when some error has occurred. Can occur due to server troubles, plugins, ...
                 </span>
+            </div>
+        </div>
+
+        <div class="control-group-event">
+            <label class="control-label">{{ _('PRINT PROGRESS') }}</label>
+            <div class="controls">
+                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.event_print_progress">
+                <span class="control-description2">
+                    This is called when print progress milestones are reached.
+                </span>
+                <div id="progress-container" data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.event_print_progress(), 'progressHidden': !settings.settings.plugins.webhooks.event_print_progress()}">
+                    <input type="number" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.event_print_progress_interval">
+                    <div class="control-description2">
+                        Set the interval you want to receive print progress webhooks.
+                        <br/>
+                        Setting the progress to 10 will send a webhook at 10%, 20%, 30%, ...
+                        <br/>
+                        Do NOT put a percent sign in the box. Put 10 instead of 10%.
+                        <br/>
+                        Note that 0% and 100% events are not triggered - use PRINT STARTED and PRINT FINISHED for those.
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -276,6 +298,7 @@
                     <option value="PrintPaused">Print Paused</option>
                     <option value="plugin_webhooks_notify">User Action Needed</option>
                     <option value="Error">Error</option>
+                    <option value="plugin_webhooks_progress">Print Progress</option>
                 </select>
                 <span class="control-description2">
                     The event you want to simulate.

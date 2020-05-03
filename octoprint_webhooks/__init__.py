@@ -45,9 +45,12 @@ def check_for_header(headers, name, value):
 
 
 class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin,
-					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin, octoprint.plugin.SimpleApiPlugin):
+					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin, octoprint.plugin.SimpleApiPlugin,
+					 octoprint.plugin.ProgressPlugin):
 	def __init__(self):
 		self.triggered = False
+		self.last_print_progress = -1
+		self.last_print_progress_milestone = 0
 
 	def get_update_information(self, *args, **kwargs):
 		return dict(
@@ -69,6 +72,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		return dict(url="", apiSecret="", deviceIdentifier="",
 					eventPrintStarted=True, eventPrintDone=True, eventPrintFailed=True, eventPrintPaused=True,
 					eventUserActionNeeded=True, eventError=True,
+					event_print_progress=False, event_print_progress_interval="50",
 					headers='{\n  "Content-Type": "application/json"\n}',
 					data='{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra"\n}',
 					http_method="POST",
@@ -94,7 +98,30 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		)
 
 	def register_custom_events(self, *args, **kwargs):
-		return ["notify"]
+		return ["notify", "progress"]
+
+	def on_print_progress(self, storage, path, progress):
+		# Reset in case of multiple prints
+		if self.last_print_progress > progress:
+			self.last_print_progress = -1
+		# Get the settings
+		active = self._settings.get(["event_print_progress"])
+		event_print_progress_interval = self._settings.get(["event_print_progress_interval"])
+		#self._logger.info("Print Progress" + storage + " - " + path + " - {0}".format(progress))
+		if active:
+			try:
+				interval = int(event_print_progress_interval)
+				# Now loop over all the missed progress events and see if they match
+				for p in range(self.last_print_progress + 1, progress + 1):
+					if p % interval == 0 and p != 0 and p != 100:
+						# Send the event for print progress
+						self.last_print_progress_milestone = p
+						eventManager().fire(Events.PLUGIN_WEBHOOKS_PROGRESS)
+				# Update the last print progress
+				self.last_print_progress = progress
+			except Exception as e:
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=True, msg="Invalid Setting for PRINT PROGRESS INTERVAL please use a number without any special characters instead of " + event_print_progress_interval))
+				return
 
 	def get_api_commands(self):
 		return dict(
@@ -108,6 +135,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			event_name = ""
 			if "event" in data:
 				event_name = data["event"]
+			if event_name == "plugin_webhooks_progress":
+				self.last_print_progress_milestone = 50
 			self.on_event(event_name, {
 				"name": "example.gcode",
 				"path": "example.gcode",
@@ -138,6 +167,9 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		elif event == Events.PLUGIN_WEBHOOKS_NOTIFY and self._settings.get(["eventUserActionNeeded"]):
 			topic = "User Action Needed"
 			message = "User action is needed. You might need to change the filament color."
+		elif event == Events.PLUGIN_WEBHOOKS_PROGRESS and self._settings.get(["event_print_progress"]):
+			topic = "Print Progress"
+			message = "Your print is {0}% complete".format(self.last_print_progress_milestone)
 		elif event == Events.ERROR and self._settings.get(["eventError"]):
 			topic = "Error"
 			message = "There was an error."

@@ -119,6 +119,13 @@ Called on Prusa Printers when a color change is necessary.
 
 An error has occurred. Can refer to many different types of errors.
 
+* Print Progress
+
+Sends progress reports every 'x' percent where is x is defined by you.
+For instance, you can send a progress webhook every 10%, 25%, or 7% if you wanted.
+NOTE: 0% and 100% are not triggered by this event, use 'Print Started' and 'Print Done'
+for those events.
+
 ## Event Data
 For details on what 'extra' data is provided with each event, check out the following.
 https://docs.octoprint.org/en/master/events/index.html#printing

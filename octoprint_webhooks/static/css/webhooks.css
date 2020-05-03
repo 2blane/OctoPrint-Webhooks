@@ -33,3 +33,12 @@
 .control-header-description {
     margin: 10px 0px 10px 0px;
 }
+.progressBlock {
+    display: block;
+}
+.progressHidden {
+    display: none;
+}
+.control-group-event {
+    margin-bottom: 5px;
+}
