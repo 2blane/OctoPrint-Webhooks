@@ -15,17 +15,30 @@ or manually using this URL:
     https://github.com/2blane/OctoPrint-Webhooks/archive/master.zip
 
 Once you've installed the plugin, go to the settings page for this plugin. The page is called "Webhooks".
-Change the following:
+Select which events you want to trigger a webhook, then change the following:
 
 #### URL
 The url that will be called when events occur such as https://www.myapi.com/v1/method
+#### HTTP METHOD
+The type of HTTP request to make. Usually this is POST.
+#### CONTENT TYPE
+This determines how the data is encoded before it is sent to your server. Usually, JSON
+will work, but on some older systems x-www-form-urlencoded might be needed.
+
+NOTE: The proper header will be set for 'Content-Type' if you don't supply one that allows
+the data to be sent properly. For instance, if you set this setting to JSON, 'application/json'
+must appear somewhere your 'Content-Type' header, and if not it will get replaced. So, you
+could set it to 'application/json charset=utf8;' if you wanted to, but not 'application/yoyo'
+as that would fail.
 #### API SECRET
-A secret that will be passed along in the API request that can be used to verify the webhook is coming from your OctoPrint Server. Set this to some random string and check in your API that the random string matches.
+A secret that will be passed along in the API request that can be used to verify the webhook
+is coming from your OctoPrint Server.
+Set this to some random string and check in your API that the random string matches.
 #### DEVICE IDENTIFIER
 A name or id that you can provide to your printer to distinguish printers from each other.
 
 ## Webhook Request
-By default, the webhook will be called as a POST request with the following data:
+By default, the webhook will be called with the following data:
 ```
 {
   "deviceIdentifier": "the DEVICE IDENTIFIER in settings",
@@ -62,9 +75,10 @@ Provide a JSON dictionary of parameters that will be passed along with the reque
 }
 ```
 
-*** NOTE - any word that starts with an @ symbol will be replaced if possible by variables.
-For instance, in the above JSON: @message will be replaced with the real message that triggered the webhook.
-Below is a list of variables you can use in your request.
+*** NOTE - you can use @param to insert variables into the JSON for both the
+Headers and Data. For instance, if above you set 'DEVICE IDENTIFIER' to "Blane's Printer",
+then @deviceIdentifer will get replaced with "Blane's Printer" when the webhook request
+is made. See below for the list of available variables that you can use.
 
 #### Available Variables
 @deviceIdentifier - the user set DEVICE IDENTIFIER found in settings
@@ -108,3 +122,38 @@ An error has occurred. Can refer to many different types of errors.
 ## Event Data
 For details on what 'extra' data is provided with each event, check out the following.
 https://docs.octoprint.org/en/master/events/index.html#printing
+
+## OAuth
+OAuth is a common authentication mechanism used by many APIs.
+If your server requires you to first make an API call trading credentials
+for tokens so that you can use those tokens in your API request,
+then OAuth should be enabled. You can then access the properties of the
+OAuth response using something like @access_token in the DATA and HEADER settings for
+your webhook request.
+
+Once you've ticked the box to enable OAuth, you'll see some fields that you need to
+fill out such as the url to call, the HTTP Method, Content-Type, Headers, and Data.
+These work similar to the webhook settings, except you can't use the @param trick.
+
+When an event triggers a webhook, this OAuth request will be called first (if enabled).
+The response is expected to be JSON and will be parsed. All the keys in the JSON dictionary
+will be available as @params that will be passed into the webhook request.
+For instance, if the reponse of the OAuth request was
+```
+{
+  "access_token": "abc123",
+  "refresh_token": "efg456",
+  "expires_in": 3600
+}
+```
+then you could use @access_token, @refresh_token, and @expires_in inside the
+'DATA' and 'HEADERS' Advanced Settings to pass them into your webhook request.
+
+## TESTING
+At the bottom of the settings page, you can simulate events to test out your API
+and make sure everything is working. Just choose the event type and click the
+'Send Test Webhook' button. You'll see a popup message showing you the result of the
+webhook and if there were any errors. You'll be notified if there are any JSON parsing
+issues with the settings you provided or any networking issues etc.
+The API requests that are sent are expected to return HTTP status codes between 200
+and 399. Anything outside of that range will be considered an error.
