@@ -71,14 +71,40 @@ Provide a JSON dictionary of parameters that will be passed along with the reque
   "message":"@message",
   "extra":"@extra",
   "custom1":"my custom data",
-  "custom2":"my second piece of custom data"
+  "custom2":"my second piece of custom data",
+  "print_name":"@job.file.name",
+  "estimated_print_time":"@job.estimatedPrintTime"
 }
 ```
 
-*** NOTE - you can use @param to insert variables into the JSON for both the
+You can use @param to insert variables into the JSON for both the
 Headers and Data. For instance, if above you set 'DEVICE IDENTIFIER' to "Blane's Printer",
 then @deviceIdentifer will get replaced with "Blane's Printer" when the webhook request
-is made. See below for the list of available variables that you can use.
+is made.
+
+You can also use dot notation to grab only parts of a dictionary. For instance,
+if there was a param named @job that contained the following:
+```
+{
+  "file": {
+    "name": "myFile.gcode", //the name of your file
+    "path": "/myFile.gcode",
+    ...
+  }
+}
+```
+Then, you could use the notation @job.file.name to just retrieve the file's name
+instead of the entire dictionary.
+
+You can also use multiple @param variables in the same string. For instance:
+```
+{
+  "custom1": "@param1 some text here @param2 - @param3"
+}
+```
+Just make sure to put a space after each @param.
+
+See below for the list of available variables that you can use.
 
 #### Available Variables
 @deviceIdentifier - the user set DEVICE IDENTIFIER found in settings
@@ -90,7 +116,160 @@ is made. See below for the list of available variables that you can use.
 @message - a short description of the type of event that was triggered.
 
 @extra - a dictionary of extra data that was passed along by OctoPrint.
+```
+// This dictionary depends on the event, but is usually something like:
+{
+  "origin": "local",
+  "name": "myFile.gcode",
+  "user": "myUserName",
+  "owner": "owner of the file",
+  "path": "/someFolder/myFile.gcode",
+  "size": 10890569
+}
+```
+See this [link](https://docs.octoprint.org/en/master/events/index.html#printing)
+for the data that is passed with each event.
 
+@state - a dictionary of data showing the current state of the printer
+```
+{
+  "text": "Operational",
+  "flags": {
+    "operational": true,
+    "printing": false,
+    "cancelling": false,
+    "pausing": false,
+    "resuming": false,
+    "finishing": false,
+    "closedOrError": false,
+    "error": false,
+    "paused": false,
+    "ready": true,
+    "sdReady": true
+  }
+}
+```
+See this [link](https://docs.octoprint.org/en/master/api/datamodel.html#printer-state)
+for more information.
+
+@job - a dictionary of data about the current print job
+```
+{
+  "file": {
+    "name": "DarwinKeycap.gcode",
+    "path": "DarwinKeycap.gcode",
+    "display": "DarwinKeycap.gcode",
+    "origin": "local",
+    "size": 242038,
+    "date": 1588195405
+  },
+  "estimatedPrintTime": 476.05552375713864,
+  "averagePrintTime": 48.8202253183409,
+  "lastPrintTime": 31.290278981000007,
+  "filament": {
+    "tool0": {
+      "volume": 0.8077585001602579,
+      "length": 335.8269600000015
+    }
+  },
+  "user": "big12isu"
+}
+```
+See this [link](https://docs.octoprint.org/en/master/api/datamodel.html#job-information)
+for more information.
+
+@progress - a dictionary of data about the current print job's progress
+```
+{
+  "completion": 14.496484023169915, //percent complete
+  "filepos": 35087, //the current byte position in the file being printed
+  "printTime": 29, //seconds already spent printing
+  "printTimeLeft": 40, //seconds remaining
+  "printTimeLeftOrigin": "average" //how the time remaining was calculated.
+}
+```
+See this [link](https://docs.octoprint.org/en/master/api/datamodel.html#progress-information)
+for more information.
+
+@currentZ - the current z height of the print head in mm.
+
+@offsets - any print offsets if applicable ... otherwise an empty dictionary.
+
+@meta - a dictionary of metadata for the file you are printing.
+```
+{
+  "statistics": {
+    "averagePrintTime": {
+      "_default": 49.04197595574509
+    },
+    "lastPrintTime": {
+      "_default": 50.53992706
+    }
+  },
+  "hash": "2d2f2c6a410f8786b62604422799c9f3c0721367",
+  "analysis": {
+    "estimatedPrintTime": 476.05552375713864,
+    "printingArea": {
+      "maxZ": 5.6,
+      "maxX": 136.67,
+      "maxY": 116.672,
+      "minX": 0.0,
+      "minY": -3.0,
+      "minZ": 0.0
+    },
+    "dimensions": {
+      "width": 136.67,
+      "depth": 119.672,
+      "height": 5.6
+    },
+    "filament": {
+      "tool0": {
+        "volume": 0.8077585001602579,
+        "length": 335.8269600000015
+      }
+    }
+  },
+  "history": [
+    {
+      "timestamp": 1588195498.7716029,
+      "printTime": 50.352958230999995,
+      "printerProfile": "_default",
+      "success": True
+    },
+    ...
+  ]
+}
+```
+
+@currentTime - The time of the event in number of seconds since the epoch.
+The epoch is usually January 1 1970, 00:00:00 (UTC).
+
+@snapshot - This is a special parameter that can only be used on the first level
+of a dictionary. For instance, you can use it like this:
+```
+{
+  "snap": "@snapshot"
+}
+```
+but not like this:
+```
+{
+  "snap": {
+    "image": "@snapshot"
+  }
+}
+```
+The @snapshot parameter will be replaced with a jpeg image if a snapshot can be retrieved
+from your connected webcam.
+Make sure under FEATURES -> Webcam & Timelapse -> the 'Snapshot URL' is set and working.
+This is what is used to grab a snapshot. The snapshot is then resized so that it can be
+quickly transported, and then sent along with your webhook under the key name you provided
+to the @snapshot parameter. If for some reason an image can't be taken or there is an image
+processing issue, then the @snapshot parameter's key will be deleted and removed from
+the request. So, it is recommended that you make the image parameter optional on your server.
+
+NOTE: If you use the @snapshot parameter, the data will automatically be encoding using
+multipart/form-data and will override your settings and headers to match.
 
 ## Events / Topics
 The following is the list of topics that can trigger a webhook.
@@ -128,7 +307,7 @@ for those events.
 
 ## Event Data
 For details on what 'extra' data is provided with each event, check out the following.
-https://docs.octoprint.org/en/master/events/index.html#printing
+[https://docs.octoprint.org/en/master/events/index.html#printing](https://docs.octoprint.org/en/master/events/index.html#printing)
 
 ## OAuth
 OAuth is a common authentication mechanism used by many APIs.

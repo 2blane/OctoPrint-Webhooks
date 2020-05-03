@@ -3,6 +3,10 @@ from __future__ import absolute_import, unicode_literals
 
 import json
 import requests
+import time
+
+from io import BytesIO
+from PIL import Image
 
 import octoprint.plugin
 from octoprint.events import eventManager, Events
@@ -14,20 +18,41 @@ from octoprint.events import eventManager, Events
 # then @p1 would get replaced with 123 like so:
 # {"abc":"123"}
 def replace_dict_with_data(d, v):
-	for key in d:
+	looping_over = d
+	if type(d) is list:
+		looping_over = range(0, len(d))
+	for key in looping_over:
 		value = d[key]
-		start_index = value.find("@")
-		if start_index >= 0:
-			# Find the end text by space
-			end_index = value.find(" ", start_index)
-			if end_index == -1:
-				end_index = len(value)
-			value_key = value[start_index + 1:end_index]
-			if value_key in v:
-				if start_index == 0 and end_index == len(value):
-					d[key] = v[value_key]
+		if type(value) is dict:
+			d[key] = replace_dict_with_data(value, v)
+		elif type(value) is str:
+			# Loop until all @params are replaced
+			while type(d[key]) is str and d[key].find("@") >= 0:
+				start_index = d[key].find("@")
+				# Find the end text by space
+				end_index = d[key].find(" ", start_index)
+				if end_index == -1:
+					end_index = len(d[key])
+				value_key = d[key][start_index + 1:end_index]
+				# Check for dot notation
+				components = value_key.split(".")
+				current_v = v
+				comp_found = True
+				for ic in range(0, len(components)):
+					comp = components[ic]
+					if comp in current_v:
+						current_v = current_v[comp]
+					else:
+						comp_found = False
+						break
+				if not comp_found:
+					current_v = ""
+				if start_index == 0 and end_index == len(d[key]):
+					d[key] = current_v
 				else:
-					d[key] = d[key].replace(value[start_index:end_index], v[value_key])
+					d[key] = d[key].replace(d[key][start_index:end_index], str(current_v))
+		elif type(value) is list:
+			d[key] = replace_dict_with_data(value, v)
 	return d
 
 # Checks for the name/value pair to make sure it matches
@@ -130,7 +155,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 
 	def on_api_command(self, command, data):
 		if command == "testhook":
-			self._logger.info("API testhook CALLED!")
+			# self._logger.info("API testhook CALLED!")
 			# TRIGGER A CUSTOM EVENT FOR A TEST PAYLOAD
 			event_name = ""
 			if "event" in data:
@@ -147,11 +172,36 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				"popup": True
 			})
 
+	# Returns a dictionary of the current job information
+	def get_job_information(self):
+		# Call the api
+		try:
+			rd = self._printer.get_current_data()
+			# Get the path if it exists
+			if "job" in rd and "file" in rd["job"] and "path" in rd["job"]["file"]:
+				path = rd["job"]["file"]["path"]
+				if type(path) is str:
+					if self._file_manager.file_exists(rd["job"]["file"]["origin"], path):
+						# self._logger.info("file exists at path")
+						# Get the file metadata, analysis, ...
+						meta = self._file_manager.get_metadata(rd["job"]["file"]["origin"], path)
+						metadata = {
+							"meta": meta
+						}
+						rd.update(metadata)
+					else:
+						self._logger.info("file does not exist at path")
+			# self._logger.info("getting job info" + json.dumps(rd))
+			return rd
+		except Exception as e:
+			self._logger.info("get_job_information exception: " + str(e))
+			return {}
+
 	def on_event(self, event, payload):
 		topic = "Unknown"
 		message = "Unknown"
 		extra = payload
-
+		# 0) Determine the topic and message parameters and if we are parsing this event.
 		if event == Events.PRINT_STARTED and self._settings.get(["eventPrintStarted"]):
 			topic = "Print Started"
 			message = "Your print has started."
@@ -173,7 +223,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		elif event == Events.ERROR and self._settings.get(["eventError"]):
 			topic = "Error"
 			message = "There was an error."
-		if topic == "Unknown":
+		else:
 			return
 		self._logger.info("P EVENT " + topic + " - " + message)
 		# 1) If necessary, make an OAuth request to get back an access token.
@@ -199,14 +249,14 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					if oauth_content_type == "JSON":
 						# Make sure the Content-Type header is set to application/json
 						oauth_headers = check_for_header(oauth_headers, "content-type", "application/json")
-						self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
-						self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+						# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+						# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
 						response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers)
 					else:
 						# Make sure the Content-Type header is set to application/x-www-form-urlencoded
 						oauth_headers = check_for_header(oauth_headers, "content-type", "application/x-www-form-urlencoded")
-						self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
-						self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+						# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+						# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
 						response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers)
 				# 1.3) Check to make sure we got a valid response code.
 				self._logger.info("OAuth Response: " + " - " + response.text)
@@ -236,44 +286,93 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			return
 		# Send the notification
 		# 2) Call the API
-		parsed_headers = False
+		parsed_headers = 0
 		try:
 			url = self._settings.get(["url"])
 			api_secret = self._settings.get(["apiSecret"])
 			device_identifier = self._settings.get(["deviceIdentifier"])
 			headers = json.loads(self._settings.get(["headers"]))
-			parsed_headers = True
+			parsed_headers = 1
 			data = json.loads(self._settings.get(["data"]))
+			parsed_headers = 2
 			http_method = self._settings.get(["http_method"])
 			content_type = self._settings.get(["content_type"])
 			# 2.1) Create a dictionary of all possible replacement variables.
-			values = {
+			values = {}
+			if extra is dict:
+				values = extra
+			values2 = {
 				"topic": topic,
 				"message": message,
 				"apiSecret": api_secret,
 				"deviceIdentifier": device_identifier,
-				"extra": extra
+				"extra": extra,
+				"currentTime": int(time.time())
 			}
-			# 2.2) Merge these values with the oauth values.
+			values.update(values2)
+			# 2.2) Get the current job information from the API
+			job_info = self.get_job_information()
+			job_values = {}
+			job_keys = ["state", "job", "currentZ", "progress", "offsets", "meta"]
+			for jit in range(0, len(job_keys)):
+				if job_keys[jit] in job_info:
+					job_values[job_keys[jit]] = job_info[job_keys[jit]]
+			values.update(job_values)
+			# 2.3) Get a snapshot image if necessary
+			uploading_file = False
+			uploading_file_name = ""
+			for uk in data:
+				if data[uk] == "@snapshot":
+					uploading_file = True
+					uploading_file_name = uk
+					break
+			snap = None
+			if uploading_file:
+				del data[uploading_file_name]
+				snap = self.get_snapshot()
+				if snap is not None:
+					self._logger.info("snapshot retrieved")
+				else:
+					uploading_file = False
+			# 2.4) Merge these values with the oauth values.
 			values.update(oauth_result)
-			# 2.3) Replace the data and header elements that start with @
+			# 2.5) Replace the data and header elements that start with @
 			data = replace_dict_with_data(data, values)
 			headers = replace_dict_with_data(headers, values)
-			# 2.4) Send the request
+			# 2.6) Send the request
 			response = ""
 			if http_method == "GET":
+				# Note: we can't upload a file with GET.
 				response = requests.get(url, params=data, headers=headers)
 			else:
-				if content_type == "JSON":
+				if uploading_file:
+					# Delete the Content-Type header if provided so that requests can set it on its own
+					to_remove = []
+					for hk in headers:
+						if "content-type" in hk.lower():
+							to_remove.append(hk)
+					for el in to_remove:
+						del headers[el]
+					self._logger.info("headers: " + json.dumps(headers))
+					self._logger.info("data: " + json.dumps(data))
+					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+					self._logger.info("sending snapshot as parameter: " + uploading_file_name)
+					files = {
+						uploading_file_name: ("snapshot.jpg", snap, "image/jpeg")
+					}
+					response = requests.request(http_method, url, files=files, data=data, headers=headers)
+				elif content_type == "JSON":
 					# Make sure the Content-Type header is set to application/json
 					headers = check_for_header(headers, "content-type", "application/json")
-					self._logger.info("headers: " + json.dumps(headers) + " - data: " + json.dumps(data) + " - values: " + json.dumps(values))
+					self._logger.info("headers: " + json.dumps(headers))
+					self._logger.info("data: " + json.dumps(data))
 					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
 					response = requests.request(http_method, url, json=data, headers=headers)
 				else:
 					# Make sure the Content-Type header is set to application/x-www-form-urlencoded
 					headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
-					self._logger.info("headers: " + json.dumps(headers) + " - data: " + json.dumps(data) + " - values: " + json.dumps(values))
+					self._logger.info("headers: " + json.dumps(headers))
+					self._logger.info("data: " + json.dumps(data))
 					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
 					response = requests.request(http_method, url, data=data, headers=headers)
 			self._logger.info("Response: " + response.text)
@@ -290,12 +389,15 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		except requests.exceptions.RequestException as e:
 			self._logger.info("API ERROR: " + str(e))
 		except Exception as e:
-			if parsed_headers:
+			if parsed_headers == 1:
 				self._logger.info("JSON Parse DATA Issue: " + str(e))
 				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks DATA Setting"))
-			else:
+			elif parsed_headers == 0:
 				self._logger.info("JSON Parse HEADERS Issue: " + str(e))
 				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks HEADERS Setting"))
+			else:
+				self._logger.info("Unknown Issue: " + str(e))
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Unknown Issue when trying to call API."))
 
 	def recv_callback(self, comm_instance, line, *args, **kwargs):
 		# Found keyword, fire event and block until other text is received
@@ -307,6 +409,69 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		else:
 			self.triggered = False
 		return line
+
+		# Private functions - Print Job Notifications
+
+	# Create an image by getting an image from the setting webcam-snapshot.
+	# Transpose this image according the settings and returns it
+	# :return:
+	def get_snapshot(self):
+		# 1) Get the snapshot url if set and other webcam settings
+		self._logger.info("Getting Snapshot")
+		snapshot_url = self._settings.global_get(["webcam", "snapshot"])
+		hflip = self._settings.global_get(["webcam", "flipH"])
+		vflip = self._settings.global_get(["webcam", "flipV"])
+		rotate = self._settings.global_get(["webcam", "rotate90"])
+		self._logger.info("Snapshot URL: " + str(snapshot_url))
+		if type(snapshot_url) is not str:
+			return None
+
+		# 2) Get the image data from the snapshot url
+		image = None
+		try:
+			# Reduce the resolution of image to prevent 400 error when uploading content
+			# Besides this saves network bandwidth and Android device or WearOS
+			# cannot tell the difference in resolution
+			image = requests.get(snapshot_url, stream=True).content
+			image_obj = Image.open(BytesIO(image))
+
+			# 3) Now resize the image so that it isn't too big to send.
+			x, y = image_obj.size
+			if x > 1640 or y > 1232:
+				size = 1640, 1232
+				image_obj.thumbnail(size, Image.ANTIALIAS)
+				output = BytesIO()
+				image_obj.save(output, format="JPEG")
+				image = output.getvalue()
+				output.close()
+		except requests.exceptions.RequestException as e:
+			self._logger.info("Error getting snapshot: " + str(e))
+			return None
+		except Exception as e:
+			self._logger.info("Error reducing resolution of image: " + str(e))
+			return None
+
+		# 4) Flip or rotate the image if necessary
+		if hflip or vflip or rotate:
+			try:
+				# https://www.blog.pythonlibrary.org/2017/10/05/how-to-rotate-mirror-photos-with-python/
+				image_obj = Image.open(BytesIO(image))
+				if hflip:
+					image_obj = image_obj.transpose(Image.FLIP_LEFT_RIGHT)
+				if vflip:
+					image_obj = image_obj.transpose(Image.FLIP_TOP_BOTTOM)
+				if rotate:
+					image_obj = image_obj.rotate(90)
+
+				# https://stackoverflow.com/questions/646286/python-pil-how-to-write-png-image-to-string/5504072
+				output = BytesIO()
+				image_obj.save(output, format="JPEG")
+				image = output.getvalue()
+				output.close()
+			except Exception as e:
+				self._logger.info("Error rotating image: " + str(e))
+				return None
+		return image
 
 
 __plugin_name__ = "Webhooks"
