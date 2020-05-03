@@ -30,6 +30,19 @@ def replace_dict_with_data(d, v):
 					d[key] = d[key].replace(value[start_index:end_index], v[value_key])
 	return d
 
+# Checks for the name/value pair to make sure it matches
+# and if not sets the name/value and returns
+def check_for_header(headers, name, value):
+	is_set = False
+	for key in headers:
+		if name.lower() in key.lower():
+			is_set = True
+			if value.lower() not in headers[key].lower():
+				headers[key] = value
+	if not is_set:
+		headers[name] = value
+	return headers
+
 
 class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin,
 					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin, octoprint.plugin.SimpleApiPlugin):
@@ -58,10 +71,14 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					eventUserActionNeeded=True, eventError=True,
 					headers='{\n  "Content-Type": "application/json"\n}',
 					data='{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra"\n}',
+					http_method="POST",
+					content_type="JSON",
 					oauth=False,
 					oauth_url="",
 					oauth_headers='{\n  "Content-Type": "application/json"\n}',
 					oauth_data='{\n  "client_id":"myClient",\n  "client_secret":"mySecret",\n  "grant_type":"client_credentials"\n}',
+					oauth_http_method="POST",
+					oauth_content_type="JSON",
 					test_event="PrintStarted"
 					)
 
@@ -139,9 +156,26 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				oauth_headers = json.loads(self._settings.get(["oauth_headers"]))
 				parsed_oauth_headers = True
 				oauth_data = json.loads(self._settings.get(["oauth_data"]))
+				oauth_http_method = self._settings.get(["oauth_http_method"])
+				oauth_content_type = self._settings.get(["oauth_content_type"])
 				# 1.2) Send the request
 				self._logger.info("Sending OAuth Request")
-				response = requests.post(oauth_url, json=oauth_data, headers=oauth_headers)
+				response = ""
+				if oauth_http_method == "GET":
+					response = requests.get(oauth_url, params=oauth_data, headers=oauth_headers)
+				else:
+					if oauth_content_type == "JSON":
+						# Make sure the Content-Type header is set to application/json
+						oauth_headers = check_for_header(oauth_headers, "content-type", "application/json")
+						self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+						self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+						response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers)
+					else:
+						# Make sure the Content-Type header is set to application/x-www-form-urlencoded
+						oauth_headers = check_for_header(oauth_headers, "content-type", "application/x-www-form-urlencoded")
+						self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+						self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+						response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers)
 				# 1.3) Check to make sure we got a valid response code.
 				self._logger.info("OAuth Response: " + " - " + response.text)
 				code = response.status_code
@@ -178,13 +212,15 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			headers = json.loads(self._settings.get(["headers"]))
 			parsed_headers = True
 			data = json.loads(self._settings.get(["data"]))
+			http_method = self._settings.get(["http_method"])
+			content_type = self._settings.get(["content_type"])
 			# 2.1) Create a dictionary of all possible replacement variables.
 			values = {
 				"topic": topic,
 				"message": message,
-				"extra": extra,
 				"apiSecret": api_secret,
-				"deviceIdentifier": device_identifier
+				"deviceIdentifier": device_identifier,
+				"extra": extra
 			}
 			# 2.2) Merge these values with the oauth values.
 			values.update(oauth_result)
@@ -192,12 +228,27 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			data = replace_dict_with_data(data, values)
 			headers = replace_dict_with_data(headers, values)
 			# 2.4) Send the request
-			self._logger.info("headers: " + json.dumps(headers) + " - data: " + json.dumps(data) + " - values: " + json.dumps(values))
-			response = requests.post(url, json=data, headers=headers)
-			result = json.loads(response.text)
+			response = ""
+			if http_method == "GET":
+				response = requests.get(url, params=data, headers=headers)
+			else:
+				if content_type == "JSON":
+					# Make sure the Content-Type header is set to application/json
+					headers = check_for_header(headers, "content-type", "application/json")
+					self._logger.info("headers: " + json.dumps(headers) + " - data: " + json.dumps(data) + " - values: " + json.dumps(values))
+					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+					response = requests.request(http_method, url, json=data, headers=headers)
+				else:
+					# Make sure the Content-Type header is set to application/x-www-form-urlencoded
+					headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
+					self._logger.info("headers: " + json.dumps(headers) + " - data: " + json.dumps(data) + " - values: " + json.dumps(values))
+					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+					response = requests.request(http_method, url, data=data, headers=headers)
+			self._logger.info("Response: " + response.text)
+			# Try to parse the response if possible.
 			code = response.status_code
 			if 200 <= code < 400:
-				self._logger.info("API SUCCESS: " + event + " " + json.dumps(result))
+				self._logger.info("API SUCCESS: " + event + " " + response.text)
 				# Optionally show a message of success if the payload has popup=True
 				if type(payload) is dict and "popup" in payload:
 					self._plugin_manager.send_plugin_message(self._identifier, dict(type="success", hide=True, msg="Response: " + response.text))
@@ -208,10 +259,10 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			self._logger.info("API ERROR: " + str(e))
 		except Exception as e:
 			if parsed_headers:
-				self._logger.info("JSON Parse DATA Issue" + str(e))
+				self._logger.info("JSON Parse DATA Issue: " + str(e))
 				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks DATA Setting"))
 			else:
-				self._logger.info("JSON Parse HEADERS Issue")
+				self._logger.info("JSON Parse HEADERS Issue: " + str(e))
 				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks HEADERS Setting"))
 
 	def recv_callback(self, comm_instance, line, *args, **kwargs):

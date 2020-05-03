@@ -93,6 +93,31 @@
             This URL will be called whenever one of the enabled events below is triggered.
         </div>
 
+        <label class="control-label">{{ _('HTTP METHOD') }}</label>
+        <div class="controls">
+            <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.http_method">
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="GET">GET</option>
+            </select>
+        </div>
+        <div class="control-description">
+            The type of HTTP request to make.
+        </div>
+
+        <label class="control-label">{{ _('CONTENT TYPE') }}</label>
+        <div class="controls">
+            <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.content_type">
+                <option value="JSON">JSON</option>
+                <option value="FORM">x-www-form-urlencoded</option>
+            </select>
+        </div>
+        <div class="control-description">
+            How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
+            to support this content type.
+        </div>
+
         <label class="control-label">{{ _('API SECRET') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
@@ -145,6 +170,7 @@
             Provide a JSON dictionary of parameters that will be passed along with each request.
         </div>
 
+
         <!-- ----- -->
         <!-- ----- -->
         <!-- OAUTH -->
@@ -175,6 +201,33 @@
             </div>
             <div class="control-description">
                 The URL to your OAuth Endpoint. This will be called first to trade credentials for an access token.
+            </div>
+
+            <!-- OAuth HTTP Method -->
+            <label class="control-label">{{ _('OAUTH HTTP METHOD') }}</label>
+            <div class="controls">
+                <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.oauth_http_method">
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="GET">GET</option>
+                </select>
+            </div>
+            <div class="control-description">
+                The type of HTTP request to make.
+            </div>
+
+            <!-- OAuth HTTP Content Type -->
+            <label class="control-label">{{ _('OAUTH CONTENT TYPE') }}</label>
+            <div class="controls">
+                <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.oauth_content_type">
+                    <option value="JSON">JSON</option>
+                    <option value="FORM">x-www-form-urlencoded</option>
+                </select>
+            </div>
+            <div class="control-description">
+                How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
+                to support this content type.
             </div>
 
             <!-- OAuth Headers -->
