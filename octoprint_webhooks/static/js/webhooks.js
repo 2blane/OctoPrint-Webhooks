@@ -5,7 +5,7 @@ $(function() {
 
         self.resetDataToDefaults = function() {
             // Update the data to be defaulted.
-            self.settings.settings.plugins.webhooks.data('{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra"\n}')
+            self.settings.settings.plugins.webhooks.data('{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra",\n  "state": "@state",\n  "job": "@job",\n  "progress": "@progress",\n  "currentZ": "@currentZ",\n  "offsets": "@offsets",\n  "meta": "@meta",\n  "currentTime": "@currentTime",\n  "snapshot": "@snapshot"\n}')
             console.log("Webhooks Reset DATA to Defaults Pressed")
         }
 
