@@ -244,6 +244,9 @@ for more information.
 @currentTime - The time of the event in number of seconds since the epoch.
 The epoch is usually January 1 1970, 00:00:00 (UTC).
 
+@percentCompleteMilestone - The last percent complete milestone.
+Usually this is used with the Print Progress event for the message text.
+
 @snapshot - This is a special parameter that can only be used on the first level
 of a dictionary. For instance, you can use it like this:
 ```
@@ -270,6 +273,27 @@ the request. So, it is recommended that you make the image parameter optional on
 
 NOTE: If you use the @snapshot parameter, the data will automatically be encoding using
 multipart/form-data and will override your settings and headers to match.
+
+#### Strategy - Getting all data
+You can copy and paste the following in the DATA box to get all the available data.
+Then, you can remove and rearrange things as necessary.
+```
+{
+  "deviceIdentifier":"@deviceIdentifier",
+  "apiSecret":"@apiSecret",
+  "topic":"@topic",
+  "message":"@message",
+  "extra":"@extra",
+  "state": "@state",
+  "job": "@job",
+  "progress": "@progress",
+  "currentZ": "@currentZ",
+  "offsets": "@offsets",
+  "meta": "@meta",
+  "currentTime": "@currentTime",
+  "snapshot": "@snapshot"
+}
+```
 
 ## Events / Topics
 The following is the list of topics that can trigger a webhook.

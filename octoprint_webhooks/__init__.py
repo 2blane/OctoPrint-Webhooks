@@ -79,6 +79,17 @@ def check_for_header(headers, name, value):
 		headers[name] = value
 	return headers
 
+# Any inner dictionaries will be json encoded so that they can be passed correctly
+# to work with python requests.
+def inner_json_encode(data):
+	try:
+		for key in data:
+			if type(data[key]) is dict or type(data[key]) is list:
+				data[key] = json.dumps(data[key])
+	except Exception as e:
+		print(str(e))
+	return data
+
 
 class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePlugin, octoprint.plugin.SettingsPlugin,
 					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin, octoprint.plugin.SimpleApiPlugin,
@@ -109,6 +120,13 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					eventPrintStarted=True, eventPrintDone=True, eventPrintFailed=True, eventPrintPaused=True,
 					eventUserActionNeeded=True, eventError=True,
 					event_print_progress=False, event_print_progress_interval="50",
+					eventPrintStartedMessage="Your print has started.",
+					eventPrintDoneMessage="Your print is done.",
+					eventPrintFailedMessage="Something went wrong and your print has failed.",
+					eventPrintPausedMessage="Your print has paused. You might need to change the filament color.",
+					eventUserActionNeededMessage="User action needed. You might need to change the filament color.",
+					eventPrintProgressMessage="Your print is @percentCompleteMilestone % complete.",
+					eventErrorMessage="There was an error.",
 					headers='{\n  "Content-Type": "application/json"\n}',
 					data='{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra"\n}',
 					http_method="POST",
@@ -215,25 +233,25 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		# 0) Determine the topic and message parameters and if we are parsing this event.
 		if event == Events.PRINT_STARTED and self._settings.get(["eventPrintStarted"]):
 			topic = "Print Started"
-			message = "Your print has started."
+			message = self._settings.get(["eventPrintStartedMessage"])
 		elif event == Events.PRINT_DONE and self._settings.get(["eventPrintDone"]):
 			topic = "Print Done"
-			message = "Your print is done."
+			message = self._settings.get(["eventPrintDoneMessage"])
 		elif event == Events.PRINT_FAILED and self._settings.get(["eventPrintFailed"]):
 			topic = "Print Failed"
-			message = "Something went wrong and your print has failed."
+			message = self._settings.get(["eventPrintFailedMessage"])
 		elif event == Events.PRINT_PAUSED and self._settings.get(["eventPrintPaused"]):
 			topic = "Print Paused"
-			message = "Your print has paused. You might need to change the filament color."
+			message = self._settings.get(["eventPrintPausedMessage"])
 		elif event == Events.PLUGIN_WEBHOOKS_NOTIFY and self._settings.get(["eventUserActionNeeded"]):
 			topic = "User Action Needed"
-			message = "User action is needed. You might need to change the filament color."
+			message = self._settings.get(["eventUserActionNeededMessage"])
 		elif event == Events.PLUGIN_WEBHOOKS_PROGRESS and self._settings.get(["event_print_progress"]):
 			topic = "Print Progress"
-			message = "Your print is {0}% complete".format(self.last_print_progress_milestone)
+			message = self._settings.get(["eventPrintProgressMessage"])
 		elif event == Events.ERROR and self._settings.get(["eventError"]):
 			topic = "Error"
-			message = "There was an error."
+			message = self._settings.get(["eventErrorMessage"])
 		else:
 			return
 		self._logger.info("P EVENT " + topic + " - " + message)
@@ -319,7 +337,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				"apiSecret": api_secret,
 				"deviceIdentifier": device_identifier,
 				"extra": extra,
-				"currentTime": int(time.time())
+				"currentTime": int(time.time()),
+				"percentCompleteMilestone": self.last_print_progress_milestone
 			}
 			values.update(values2)
 			# 2.2) Get the current job information from the API
@@ -365,6 +384,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 							to_remove.append(hk)
 					for el in to_remove:
 						del headers[el]
+					# We need to inner json_encode any dictionaries and arrays.
+					data = inner_json_encode(data)
 					self._logger.info("headers: " + json.dumps(headers))
 					self._logger.info("data: " + json.dumps(data))
 					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
@@ -383,6 +404,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				else:
 					# Make sure the Content-Type header is set to application/x-www-form-urlencoded
 					headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
+					# We need to inner json_encode any dictionaries and arrays.
+					data = inner_json_encode(data)
 					self._logger.info("headers: " + json.dumps(headers))
 					self._logger.info("data: " + json.dumps(data))
 					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
