@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 import json
 import requests
 import time
+import sys
 
 from io import BytesIO
 from PIL import Image
@@ -11,6 +12,16 @@ from PIL import Image
 import octoprint.plugin
 from octoprint.events import eventManager, Events
 
+# Returns if the variable is a unicode or string accounting for both python 2 & 3.
+def is_string(unicode_or_str):
+	is_string = False
+	if sys.version_info[0] >= 3:
+		if type(unicode_or_str) is str:
+			is_string = True
+	else:
+		if type(unicode_or_str) is unicode or type(unicode_or_str) is str:
+			is_string = True
+	return is_string
 
 # Replaces any v in data that start with @param
 # with the v in values. For instance, if data
@@ -25,9 +36,9 @@ def replace_dict_with_data(d, v):
 		value = d[key]
 		if type(value) is dict:
 			d[key] = replace_dict_with_data(value, v)
-		elif type(value) is str:
+		elif is_string(value):
 			# Loop until all @params are replaced
-			while type(d[key]) is str and d[key].find("@") >= 0:
+			while is_string(d[key]) and d[key].find("@") >= 0:
 				start_index = d[key].find("@")
 				# Find the end text by space
 				end_index = d[key].find(" ", start_index)
@@ -270,6 +281,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid OAuth Response: " + response.text))
 			except requests.exceptions.RequestException as e:
 				self._logger.info("OAuth API Error: " + str(e))
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="OAuth API Error: " + str(e)))
 			except Exception as e:
 				if parsed_oauth_headers:
 					self._logger.info("OAuth JSON Parse Issue for DATA")
@@ -388,6 +400,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid API Response: " + response.text))
 		except requests.exceptions.RequestException as e:
 			self._logger.info("API ERROR: " + str(e))
+			self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="API Error: " + str(e)))
 		except Exception as e:
 			if parsed_headers == 1:
 				self._logger.info("JSON Parse DATA Issue: " + str(e))
