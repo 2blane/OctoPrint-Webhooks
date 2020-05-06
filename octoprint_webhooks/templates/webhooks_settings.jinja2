@@ -2,301 +2,70 @@
 <script src="{{ url_for("static", filename="js/lib/jquery/jquery.min.js") }}"></script>
 <script src="{{ url_for("static", filename="js/lib/lodash.min.js") }}"></script>
 
-<h2>Webhook Settings</h2>
+<h2>Webhooks</h2>
 <form class="form-horizontal">
     <div class="control-group">
-        <!-- ---------- -->
-        <!-- ---------- -->
-        <!-- EVENT LIST -->
-        <!-- ---------- -->
-        <!-- ---------- -->
-        <h4 class="control-header" style="margin-bottom:20px">Events</h4>
-        <div class="control-header-description">
-            Select the events for which you want webhooks sent.
-            You can also customize the @message param that is set for each event.
-        </div>
-        <div class="control-group-event">
-            <label class="control-label">{{ _('PRINT STARTED') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintStarted">
-                <span class="control-description2">
-                    This is called when a print is started.
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventPrintStarted(), 'progressHidden': !settings.settings.plugins.webhooks.eventPrintStarted()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventPrintStartedMessage">
-                </div>
-            </div>
-        </div>
+        <table class="webhooksTable" data-bind="css: { 'hideElement': $root.selectedIndex() == -1 }">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th class="webhooksTableActionsTH">Actions</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: settings.settings.plugins.webhooks.hooks">
+                <tr data-bind="css: { 'selectedHookRow': $root.selectedIndex() == $index() }">
+                    <td>
+                        <!-- DOT FOR SELECTION -->
+                        <span data-bind="css: { 'hideElement': $root.selectedIndex() != $index()}">⦿</span>
+                        <!-- TAGS -->
+                        <span class="webhookDisabledTag" data-bind="css: { 'hideElement' : webhook_enabled() }">Disabled</span>
+                        <span class="webhookOAuthTag" data-bind="css: { 'hideElement' : !oauth() }">OAuth</span>
+                        <!-- URL -->
+                        <span data-bind="text: url().length == 0 ? 'New Webhook' : url()" }></span>
 
-        <div class="control-group-event">
-            <label class="control-label">{{ _('PRINT DONE') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintDone">
-                <span class="control-description2">
-                    This is called when a print has finished.
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventPrintDone(), 'progressHidden': !settings.settings.plugins.webhooks.eventPrintDone()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventPrintDoneMessage">
-                </div>
-            </div>
-        </div>
-
-
-        <div class="control-group-event">
-            <label class="control-label">{{ _('PRINT FAILED') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintFailed">
-                <span class="control-description2">
-                    This is called when a print has failed.
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventPrintFailed(), 'progressHidden': !settings.settings.plugins.webhooks.eventPrintFailed()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventPrintFailedMessage">
-                </div>
-            </div>
-        </div>
-
-        <div class="control-group-event">
-            <label class="control-label">{{ _('PRINT PAUSED') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventPrintPaused">
-                <span class="control-description2">
-                    This is called when a print has been paused.
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventPrintPaused(), 'progressHidden': !settings.settings.plugins.webhooks.eventPrintPaused()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventPrintPausedMessage">
-                </div>
-            </div>
-        </div>
-
-        <div class="control-group-event">
-            <label class="control-label">{{ _('USER ACTION NEEDED') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventUserActionNeeded">
-                <span class="control-description2">
-                    This is called when user action is needed.
-                    Can be used with a Prusa printer when a color change is necessary.
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventUserActionNeeded(), 'progressHidden': !settings.settings.plugins.webhooks.eventUserActionNeeded()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventUserActionNeededMessage">
-                </div>
-            </div>
-        </div>
-
-        <div class="control-group-event">
-            <label class="control-label">{{ _('ERROR') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.eventError">
-                <span class="control-description2">
-                    This is called when some error has occurred. Can occur due to server troubles, plugins, ...
-                </span>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.eventError(), 'progressHidden': !settings.settings.plugins.webhooks.eventError()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventErrorMessage">
-                </div>
-            </div>
-        </div>
-
-        <div class="control-group-event">
-            <label class="control-label">{{ _('PRINT PROGRESS') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.event_print_progress">
-                <span class="control-description2">
-                    This is called when print progress milestones are reached.
-                </span>
-                <div id="progress-container" data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.event_print_progress(), 'progressHidden': !settings.settings.plugins.webhooks.event_print_progress()}">
-                    <input type="number" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.event_print_progress_interval">
-                    <div class="control-description2">
-                        Set the interval you want to receive print progress webhooks.
                         <br/>
-                        Setting the progress to 10 will send a webhook at 10%, 20%, 30%, ...
-                        <br/>
-                        Do NOT put a percent sign in the box. Put 10 instead of 10%.
-                        <br/>
-                        Note that 0% and 100% events are not triggered - use PRINT STARTED and PRINT FINISHED for those.
-                    </div>
-                </div>
-                <div data-bind="css: { 'progressBlock': settings.settings.plugins.webhooks.event_print_progress(), 'progressHidden': !settings.settings.plugins.webhooks.event_print_progress()}">
-                    <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.eventPrintProgressMessage">
-                </div>
+                        <!-- EVENTS -->
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventPrintStarted() }">Started</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventPrintDone() }">Done</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventPrintFailed() }">Failed</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventPrintPaused() }">Paused</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventUserActionNeeded() }">User Action</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !eventError() }">Error</span>
+                        <span class="webhookEventTag" data-bind="css: { 'hideElement': !event_print_progress() }">Progress</span>
+                    </td>
+                    <td class="webhooksTableActionsTD">
+                        <button type="button" class="btn btn-mini movePlug" data-bind="click: function() { $root.editHook($index()) }, css: { 'hideElement': $root.selectedIndex() == $index()}">Edit</button>
+                        <button type="button" class="btn btn-mini" data-bind="click: $root.copyHook">Duplicate</button>
+                        <button type="button" class="btn btn-mini btn-danger" data-bind="click: $root.removeHook">Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" class="btn webhookCreateButton" data-bind="click: $root.newHook">New Hook</button>
+    </div>
+</form>
+
+<!-- SETTINGS FOR THE SELECTED WEBHOOK -->
+<form class="form-horizontal" data-bind="css: { 'hideElement': $root.selectedIndex() == -1 }">
+    <div class="control-group" data-bind="with: selectedHook">
+        <h2>Webhook Settings</h2>
+
+        <div class="control-group-event">
+            <label class="control-label">{{ _('ENABLED') }}</label>
+            <div class="controls">
+                <input type="checkbox" data-bind="checked: webhook_enabled">
+                <span class="control-description2">
+                    Is this webhook enabled?
+                </span>
             </div>
         </div>
 
-        <!-- ------------------ -->
-        <!-- ------------------ -->
-        <!-- WEBHOOK PARAMETERS -->
-        <!-- ------------------ -->
-        <!-- ------------------ -->
-        <h4 class="control-header">Webhook Parameters</h4>
-        <div class="control-header-description">
-            Every time an event occurs, an API request (webhook) will be sent to the URL you provide.
-        </div>
         <label class="control-label">{{ _('URL') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.url">
+            <input type="text" class="input-block-level" data-bind="value: url">
         </div>
         <div class="control-description">
             This URL will be called whenever one of the enabled events below is triggered.
-        </div>
-
-        <label class="control-label">{{ _('HTTP METHOD') }}</label>
-        <div class="controls">
-            <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.http_method">
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-                <option value="GET">GET</option>
-            </select>
-        </div>
-        <div class="control-description">
-            The type of HTTP request to make.
-        </div>
-
-        <label class="control-label">{{ _('CONTENT TYPE') }}</label>
-        <div class="controls">
-            <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.content_type">
-                <option value="JSON">JSON</option>
-                <option value="FORM">x-www-form-urlencoded</option>
-            </select>
-        </div>
-        <div class="control-description">
-            How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
-            to support this content type.
-        </div>
-
-        <label class="control-label">{{ _('API SECRET') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.apiSecret">
-        </div>
-        <div class="control-description">
-            This secret will be passed along with every webhook. You can use this to verify that the webhook is
-            coming from the OctoPrint server. 15-20 random characters should do it.
-        </div>
-
-        <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.deviceIdentifier">
-        </div>
-        <div class="control-description">
-            If you have multiple printers sending webhooks to the same server, this device identifier will
-            help you distinguish between them. Something like 'Printer1' should work.
-        </div>
-
-        <!-- -------- -->
-        <!-- -------- -->
-        <!-- ADVANCED -->
-        <!-- -------- -->
-        <!-- -------- -->
-        <h4 class="control-header">Advanced</h4>
-        <div class="control-header-description">
-            The advanced parameters allow you to format the Headers and Data that are sent in your webhook.
-            You can use @param to insert variables into the JSON.
-            For instance, if above you set 'DEVICE IDENTIFIER' to "Blane's Printer", then @deviceIdentifer
-            will get replaced with "Blane's Printer" when the webhook request is made.
-            For a list of all possible parameters, see the
-            <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>.
-        </div>
-        <label class="control-label">{{ _('HEADERS') }}</label>
-        <div class="controls">
-            <button type="button" class="input-button" data-bind="click: resetHeadersToDefaults">Reset to Defaults</button>
-            <textarea class="input-block-level" rows="3" data-bind="value: settings.settings.plugins.webhooks.headers">
-            </textarea>
-        </div>
-        <div class="control-description">
-            Provide a JSON dictionary of headers that will be passed along with each request.
-        </div>
-
-        <label class="control-label">{{ _('DATA') }}</label>
-        <div class="controls">
-            <button type="button" class="input-button" data-bind="click: resetDataToDefaults">Reset to Defaults</button>
-            <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.data">
-            </textarea>
-        </div>
-        <div class="control-description">
-            Provide a JSON dictionary of parameters that will be passed along with each request.
-        </div>
-
-
-        <!-- ----- -->
-        <!-- ----- -->
-        <!-- OAUTH -->
-        <!-- ----- -->
-        <!-- ----- -->
-        <h4 class="control-header">OAuth</h4>
-        <div class="control-header-description">
-            OAuth is a common authentication mechanism used by many APIs. If your server requires you to first make an
-            API call trading credentials for tokens so that you can use those tokens in your API request then OAuth
-            should be enabled. You can then access the properties of the OAuth response using something like @access_token
-            in the DATA and HEADER settings above.
-        </div>
-        <div class="control-group">
-            <label class="control-label">{{ _('OAUTH ENABLED') }}</label>
-            <div class="controls">
-                <input type="checkbox" data-bind="checked: settings.settings.plugins.webhooks.oauth">
-                <span class="control-description2">
-                    If enabled, will first make an OAuth call to get credentials, and will then call the webhook.
-                </span>
-            </div>
-        </div>
-
-        <div id="oauth-container" data-bind="css: { 'oAuthContainerBlock': settings.settings.plugins.webhooks.oauth(), 'oAuthContainer': !settings.settings.plugins.webhooks.oauth()}">
-            <!-- OAuth URL -->
-            <label class="control-label">{{ _('OAUTH URL') }}</label>
-            <div class="controls">
-                <input type="text" class="input-block-level" data-bind="value: settings.settings.plugins.webhooks.oauth_url">
-            </div>
-            <div class="control-description">
-                The URL to your OAuth Endpoint. This will be called first to trade credentials for an access token.
-            </div>
-
-            <!-- OAuth HTTP Method -->
-            <label class="control-label">{{ _('OAUTH HTTP METHOD') }}</label>
-            <div class="controls">
-                <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.oauth_http_method">
-                    <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="DELETE">DELETE</option>
-                    <option value="GET">GET</option>
-                </select>
-            </div>
-            <div class="control-description">
-                The type of HTTP request to make.
-            </div>
-
-            <!-- OAuth HTTP Content Type -->
-            <label class="control-label">{{ _('OAUTH CONTENT TYPE') }}</label>
-            <div class="controls">
-                <select id="selectHTTPMethod" class="control-select" data-bind="value: settings.settings.plugins.webhooks.oauth_content_type">
-                    <option value="JSON">JSON</option>
-                    <option value="FORM">x-www-form-urlencoded</option>
-                </select>
-            </div>
-            <div class="control-description">
-                How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
-                to support this content type.
-            </div>
-
-            <!-- OAuth Headers -->
-            <label class="control-label">{{ _('OAUTH HEADERS') }}</label>
-            <div class="controls">
-                <button type="button" class="input-button" data-bind="click: resetOAuthHeadersToDefaults">Reset to Defaults</button>
-                <textarea class="input-block-level" rows="3" data-bind="value: settings.settings.plugins.webhooks.oauth_headers">
-                </textarea>
-            </div>
-            <div class="control-description">
-                Provide a JSON dictionary of headers that will be passed along with each request.
-                NOTE: @param doesn't work here.
-            </div>
-
-            <!-- OAuth Data -->
-            <label class="control-label">{{ _('OAUTH DATA') }}</label>
-            <div class="controls">
-                <button type="button" class="input-button" data-bind="click: resetOAuthDataToDefaults">Reset to Defaults</button>
-                <textarea class="input-block-level" rows="7" data-bind="value: settings.settings.plugins.webhooks.oauth_data">
-                </textarea>
-            </div>
-            <div class="control-description">
-                Provide a JSON dictionary of parameters that will be passed along with each request.
-                NOTE: @param doesn't work here.
-            </div>
         </div>
 
         <!-- ------------ -->
@@ -305,15 +74,17 @@
         <!-- ------------ -->
         <!-- ------------ -->
         <h4 class="control-header">Testing</h4>
+
         <div class="control-header-description">
             Send test events to your server to make sure everything is configured correctly.
             <br/>
-            Note: if a popup appears telling you "Settings update detected", you can choose either option and ignore it.
+            Note: if a popup appears telling you "Settings update detected", click outside the popup to dismiss it.
+            Don't select one of the options.
         </div>
         <div class="control-group">
             <label class="control-label">{{ _('TEST EVENT') }}</label>
             <div class="controls">
-                <select id="selectTestEvent" class="control-select" data-bind="value: settings.settings.plugins.webhooks.test_event">
+                <select id="selectTestEvent" class="control-select" data-bind="value: test_event">
                     <option value="PrintStarted">Print Started</option>
                     <option value="PrintDone">Print Done</option>
                     <option value="PrintFailed">Print Failed</option>
@@ -326,7 +97,385 @@
                     The event you want to simulate.
                 </span>
                 <br/>
-                <button type="button" class="input-button" data-bind="click: testWebhook" style="margin-top:10px;">Send Test Webhook</button>
+                <button type="button" class="input-button" data-bind="click: $root.testWebhook" style="margin-top:10px;">Send Test Webhook</button>
+            </div>
+        </div>
+
+        <!-- --------- -->
+        <!-- --------- -->
+        <!-- Templates -->
+        <!-- --------- -->
+        <!-- --------- -->
+        <h4 class="control-header control-header-pushable" data-bind="click: function() { $root.foldSection('templates') }">
+            Templates
+            <span data-bind="css: { 'hideElement': $root.foldTemplates() }">▴</span>
+            <span data-bind="css: { 'hideElement': !$root.foldTemplates() }">▾</span>
+        </h4>
+
+        <div data-bind="css: { 'hideElement': $root.foldTemplates() }">
+            <div class="control-header-description">
+                You can use a template to default the settings for your webhook.
+                This will help you see how the settings work and how to integrate with certain APIs.
+                Select a template from the list, then hit the 'Activate Template' button to set
+                the data.
+            </div>
+
+            <!-- SELECT A TEMPLATE -->
+            <div class="control-group">
+                <label class="control-label">{{ _('TEMPLATE') }}</label>
+                <div class="controls">
+                    <select class="control-select" data-bind="options: $root.availableTemplates,
+                                                              optionsText: '_name',
+                                                              value: $root.template,
+                                                              event: { change: $root.templateChanged }">
+                    </select>
+                    <div style="margin-top:5px;margin-bottom:5px;" data-bind="text: $root.templateDescription ">
+                    </div>
+                    <button type="button" class="input-button" data-bind="click: $root.activateTemplate, css: { 'hideElement': $root.templateActivated() }">Activate Template</button>
+                    <div style="padding-top:10px;padding-bottom:8px;font-weight:600;" data-bind="css: { 'hideElement': !$root.templateActivated() }">
+                        Template Activated 🎉
+                    </div>
+                    <hr />
+                </div>
+            </div>
+
+            <!-- DEVELOPMENT -->
+            <div class="control-group">
+                <label class="control-label">{{ _('DEVELOPMENT') }}</label>
+                <div class="controls">
+                    <button type="button" class="input-button" data-bind="click: $root.downloadTemplate">Download Template</button>
+                    <a id="templateDownloadA" style="display:none;" target="_blank" download="config.json" data-bind="attr: { href: $root.templateData }">
+                    </a>
+                </div>
+                <div class="control-description">
+                    If you'd like to contribute to the community and provide a template that everybody can use, do the following:
+                    <br/>
+                    1. Click the 'Download Template' button above to download a json representation of your webhook.
+                    <br/>
+                    2. Open up the json file, and fill out any remaining data ('_name' & '_description' at the bottom of the file).
+                    <br/>
+                    3. Checkout the <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks">source code</a> from GitHub.
+                    <br/>
+                    4. Add your json file under octoprint_webhooks/static/templates.
+                    <br/>
+                    5. Inside octoprint_webhooks/__init__.py -> add your file to the 'get_assets' method under json.
+                    <br/>
+                    6. Inside octoprint_webhooks/static/js/webhooks.js -> add your file to the 'onBeforeBinding' method inside the 'templates' list.
+                    <br/>
+                    7. Done. Submit a pull request. Thanks for your contribution 🥳
+                </div>
+            </div>
+        </div>
+
+        <!-- ------------------ -->
+        <!-- ------------------ -->
+        <!-- WEBHOOK PARAMETERS -->
+        <!-- ------------------ -->
+        <!-- ------------------ -->
+        <h4 class="control-header control-header-pushable" data-bind="click: function() { $root.foldSection('webhookParameters') }">
+            Webhook Parameters
+            <span data-bind="css: { 'hideElement': $root.foldWebhookParameters() }">▴</span>
+            <span data-bind="css: { 'hideElement': !$root.foldWebhookParameters() }">▾</span>
+        </h4>
+
+        <div data-bind="css: { 'hideElement': $root.foldWebhookParameters() }">
+
+            <label class="control-label">{{ _('HTTP METHOD') }}</label>
+            <div class="controls" style="margin-top:20px">
+                <select id="selectHTTPMethod" class="control-select" data-bind="value: http_method">
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="GET">GET</option>
+                </select>
+            </div>
+            <div class="control-description">
+                The type of HTTP request to make.
+            </div>
+
+            <label class="control-label">{{ _('CONTENT TYPE') }}</label>
+            <div class="controls">
+                <select id="selectHTTPMethod" class="control-select" data-bind="value: content_type">
+                    <option value="JSON">JSON</option>
+                    <option value="FORM">x-www-form-urlencoded</option>
+                </select>
+            </div>
+            <div class="control-description">
+                How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
+                to support this content type.
+            </div>
+
+            <label class="control-label">{{ _('API SECRET') }}</label>
+            <div class="controls">
+                <input type="text" class="input-block-level" data-bind="value: apiSecret">
+            </div>
+            <div class="control-description">
+                This secret will be passed along with every webhook. You can use this to verify that the webhook is
+                coming from the OctoPrint server. 15-20 random characters should do it.
+            </div>
+
+            <label class="control-label">{{ _('DEVICE IDENTIFIER') }}</label>
+            <div class="controls">
+                <input type="text" class="input-block-level" data-bind="value: deviceIdentifier">
+            </div>
+            <div class="control-description">
+                If you have multiple printers sending webhooks to the same server, this device identifier will
+                help you distinguish between them. Something like 'Printer1' should work.
+            </div>
+        </div>
+
+        <!-- ---------- -->
+        <!-- ---------- -->
+        <!-- EVENT LIST -->
+        <!-- ---------- -->
+        <!-- ---------- -->
+        <h4 class="control-header control-header-pushable" style="margin-bottom:20px" data-bind="click: function() { $root.foldSection('events') }">
+            Events
+            <span data-bind="css: { 'hideElement': $root.foldEvents() }">▴</span>
+            <span data-bind="css: { 'hideElement': !$root.foldEvents() }">▾</span>
+        </h4>
+
+        <div data-bind="css: { 'hideElement': $root.foldEvents() }">
+            <div class="control-header-description">
+                Select the events for which you want webhooks sent.
+                You can also customize the @message param that is set for each event.
+            </div>
+            <div class="control-group-event">
+                <label class="control-label">{{ _('PRINT STARTED') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventPrintStarted">
+                    <span class="control-description2">
+                        This is called when a print is started.
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventPrintStarted(), 'progressHidden': !eventPrintStarted()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventPrintStartedMessage">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('PRINT DONE') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventPrintDone">
+                    <span class="control-description2">
+                        This is called when a print has finished.
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventPrintDone(), 'progressHidden': !eventPrintDone()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventPrintDoneMessage">
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('PRINT FAILED') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventPrintFailed">
+                    <span class="control-description2">
+                        This is called when a print has failed.
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventPrintFailed(), 'progressHidden': !eventPrintFailed()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventPrintFailedMessage">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('PRINT PAUSED') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventPrintPaused">
+                    <span class="control-description2">
+                        This is called when a print has been paused.
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventPrintPaused(), 'progressHidden': !eventPrintPaused()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventPrintPausedMessage">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('USER ACTION NEEDED') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventUserActionNeeded">
+                    <span class="control-description2">
+                        This is called when user action is needed.
+                        Can be used with a Prusa printer when a color change is necessary.
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventUserActionNeeded(), 'progressHidden': !eventUserActionNeeded()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventUserActionNeededMessage">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('ERROR') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: eventError">
+                    <span class="control-description2">
+                        This is called when some error has occurred. Can occur due to server troubles, plugins, ...
+                    </span>
+                    <div data-bind="css: { 'progressBlock': eventError(), 'progressHidden': !eventError()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventErrorMessage">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group-event">
+                <label class="control-label">{{ _('PRINT PROGRESS') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: event_print_progress">
+                    <span class="control-description2">
+                        This is called when print progress milestones are reached.
+                    </span>
+                    <div id="progress-container" data-bind="css: { 'progressBlock': event_print_progress(), 'progressHidden': !event_print_progress()}">
+                        <input type="number" class="input-block-level" data-bind="value: event_print_progress_interval">
+                        <div class="control-description2">
+                            Set the interval you want to receive print progress webhooks.
+                            <br/>
+                            Setting the progress to 10 will send a webhook at 10%, 20%, 30%, ...
+                            <br/>
+                            Do NOT put a percent sign in the box. Put 10 instead of 10%.
+                            <br/>
+                            Note that 0% and 100% events are not triggered - use PRINT STARTED and PRINT FINISHED for those.
+                        </div>
+                    </div>
+                    <div data-bind="css: { 'progressBlock': event_print_progress(), 'progressHidden': !event_print_progress()}">
+                        <input type="text" class="input-block-level" data-bind="value: eventPrintProgressMessage">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- -------- -->
+        <!-- -------- -->
+        <!-- ADVANCED -->
+        <!-- -------- -->
+        <!-- -------- -->
+        <h4 class="control-header control-header-pushable" data-bind="click: function() { $root.foldSection('advanced') }">
+            Advanced
+            <span data-bind="css: { 'hideElement': $root.foldAdvanced() }">▴</span>
+            <span data-bind="css: { 'hideElement': !$root.foldAdvanced() }">▾</span>
+        </h4>
+
+        <div data-bind="css: { 'hideElement': $root.foldAdvanced() }">
+            <div class="control-header-description">
+                The advanced parameters allow you to format the Headers and Data that are sent in your webhook.
+                You can use @param to insert variables into the JSON.
+                For instance, if above you set 'DEVICE IDENTIFIER' to "Blane's Printer", then @deviceIdentifer
+                will get replaced with "Blane's Printer" when the webhook request is made.
+                For a list of all possible parameters, see the
+                <a target="_blank" href="https://github.com/2blane/OctoPrint-Webhooks#advanced-configuration">README</a>.
+            </div>
+            <label class="control-label">{{ _('HEADERS') }}</label>
+            <div class="controls">
+                <button type="button" class="input-button" data-bind="click: $root.resetHeadersToDefaults">Reset to Defaults</button>
+                <textarea class="input-block-level" rows="3" data-bind="value: headers">
+                </textarea>
+            </div>
+            <div class="control-description">
+                Provide a JSON dictionary of headers that will be passed along with each request.
+            </div>
+
+            <label class="control-label">{{ _('DATA') }}</label>
+            <div class="controls">
+                <button type="button" class="input-button" data-bind="click: $root.resetDataToDefaults">Reset to Defaults</button>
+                <textarea class="input-block-level" rows="7" data-bind="value: data">
+                </textarea>
+            </div>
+            <div class="control-description">
+                Provide a JSON dictionary of parameters that will be passed along with each request.
+            </div>
+        </div>
+
+
+        <!-- ----- -->
+        <!-- ----- -->
+        <!-- OAUTH -->
+        <!-- ----- -->
+        <!-- ----- -->
+        <h4 class="control-header control-header-pushable" data-bind="click: function() { $root.foldSection('oAuth') }">
+            OAuth
+            <span data-bind="css: { 'hideElement': $root.foldOAuth() }">▴</span>
+            <span data-bind="css: { 'hideElement': !$root.foldOAuth() }">▾</span>
+        </h4>
+
+        <div data-bind="css: { 'hideElement': $root.foldOAuth() }">
+            <div class="control-header-description">
+                OAuth is a common authentication mechanism used by many APIs. If your server requires you to first make an
+                API call trading credentials for tokens so that you can use those tokens in your API request then OAuth
+                should be enabled. You can then access the properties of the OAuth response using something like @access_token
+                in the DATA and HEADER settings above.
+            </div>
+            <div class="control-group">
+                <label class="control-label">{{ _('OAUTH ENABLED') }}</label>
+                <div class="controls">
+                    <input type="checkbox" data-bind="checked: oauth">
+                    <span class="control-description2">
+                        If enabled, will first make an OAuth call to get credentials, and will then call the webhook.
+                    </span>
+                </div>
+            </div>
+
+            <div id="oauth-container" data-bind="css: { 'oAuthContainerBlock': oauth(), 'oAuthContainer': !oauth()}">
+                <!-- OAuth URL -->
+                <label class="control-label">{{ _('OAUTH URL') }}</label>
+                <div class="controls">
+                    <input type="text" class="input-block-level" data-bind="value: oauth_url">
+                </div>
+                <div class="control-description">
+                    The URL to your OAuth Endpoint. This will be called first to trade credentials for an access token.
+                </div>
+
+                <!-- OAuth HTTP Method -->
+                <label class="control-label">{{ _('OAUTH HTTP METHOD') }}</label>
+                <div class="controls">
+                    <select id="selectHTTPMethod" class="control-select" data-bind="value: oauth_http_method">
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="GET">GET</option>
+                    </select>
+                </div>
+                <div class="control-description">
+                    The type of HTTP request to make.
+                </div>
+
+                <!-- OAuth HTTP Content Type -->
+                <label class="control-label">{{ _('OAUTH CONTENT TYPE') }}</label>
+                <div class="controls">
+                    <select id="selectHTTPMethod" class="control-select" data-bind="value: oauth_content_type">
+                        <option value="JSON">JSON</option>
+                        <option value="FORM">x-www-form-urlencoded</option>
+                    </select>
+                </div>
+                <div class="control-description">
+                    How to encode the data before sending. The header for 'Content-Type' will be overridden if necessary
+                    to support this content type.
+                </div>
+
+                <!-- OAuth Headers -->
+                <label class="control-label">{{ _('OAUTH HEADERS') }}</label>
+                <div class="controls">
+                    <button type="button" class="input-button" data-bind="click: $root.resetOAuthHeadersToDefaults">Reset to Defaults</button>
+                    <textarea class="input-block-level" rows="3" data-bind="value: oauth_headers">
+                    </textarea>
+                </div>
+                <div class="control-description">
+                    Provide a JSON dictionary of headers that will be passed along with each request.
+                    NOTE: @param doesn't work here.
+                </div>
+
+                <!-- OAuth Data -->
+                <label class="control-label">{{ _('OAUTH DATA') }}</label>
+                <div class="controls">
+                    <button type="button" class="input-button" data-bind="click: $root.resetOAuthDataToDefaults">Reset to Defaults</button>
+                    <textarea class="input-block-level" rows="7" data-bind="value: oauth_data">
+                    </textarea>
+                </div>
+                <div class="control-description">
+                    Provide a JSON dictionary of parameters that will be passed along with each request.
+                    NOTE: @param doesn't work here.
+                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,22 @@
+{
+  "content_type": "JSON",
+  "data": "{\n  \"deviceIdentifier\":\"@deviceIdentifier\",\n  \"apiSecret\":\"@apiSecret\",\n  \"topic\":\"@topic\",\n  \"message\":\"@message\",\n  \"extra\":\"@extra\",\n  \"state\": \"@state\",\n  \"job\": \"@job\",\n  \"progress\": \"@progress\",\n  \"currentZ\": \"@currentZ\",\n  \"offsets\": \"@offsets\",\n  \"meta\": \"@meta\",\n  \"currentTime\": \"@currentTime\",\n  \"snapshot\": \"@snapshot\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started.",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "12",
+  "headers": "{\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Bearer @access_token\"\n}",
+  "http_method": "POST",
+  "oauth": true,
+  "oauth_content_type": "JSON",
+  "oauth_data": "{\n  \"client_id\":\"YOUR_CLIENT_ID\",\n  \"client_secret\":\"YOUR_CLIENT_SECRET\",\n  \"grant_type\":\"client_credentials\"\n}",
+  "oauth_headers": "{\n  \"Content-Type\": \"application/json\"\n}",
+  "oauth_http_method": "POST",
+  "oauth_url": "YOUR OAUTH URL HERE LIKE https://api.example.com/access_token",
+  "_name": "OAuth Example",
+  "_description": "This example shows you how to integrate with an OAuth API. Make sure to set the OAUTH DATA parameters for 'client_id' and 'client_secret'. First, the OAuth url is called, then the 'access_token' is parsed from the JSON response and set in the HEADER as @access_token. Note: you may have to change the name of @access_token to fit your OAuth response. For instance, it could be @accessToken, @AccessToken, @access-token, etc. depending on what the OAuth response returns."
+}

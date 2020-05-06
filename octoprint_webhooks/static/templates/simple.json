@@ -1,0 +1,17 @@
+{
+  "content_type": "JSON",
+  "data": "{\n  \"deviceIdentifier\":\"@deviceIdentifier\",\n  \"apiSecret\":\"@apiSecret\",\n  \"topic\":\"@topic\",\n  \"message\":\"@message\",\n  \"extra\":\"@extra\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "50",
+  "headers": "{\n  \"Content-Type\": \"application/json\"\n}",
+  "http_method": "POST",
+  "oauth": false,
+  "_name": "Simple Example",
+  "_description": "A simple example of sending basic data to an API. A good place to start."
+}

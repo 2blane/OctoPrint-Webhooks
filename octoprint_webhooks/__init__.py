@@ -97,7 +97,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 	def __init__(self):
 		self.triggered = False
 		self.last_print_progress = -1
-		self.last_print_progress_milestone = 0
+		self.last_print_progress_milestones = []
 
 	def get_update_information(self, *args, **kwargs):
 		return dict(
@@ -113,7 +113,38 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		)
 
 	def on_after_startup(self):
-		self._logger.info("Hello World from WebhooksPlugin! " + self._settings.get(["url"]))
+		self._logger.info("Hello World from WebhooksPlugin!")
+		# Update the settings if necessary
+		self.migrate_settings()
+
+	def migrate_settings(self):
+		settings_version = self._settings.get(["settings_version"])
+		if settings_version == 1:
+			self._logger.info("Migrating settings from v1 to v2")
+			# create a hook with the current params and add it to the list
+			hook_params = ["url", "apiSecret", "deviceIdentifier", "eventPrintStarted", "eventPrintDone",
+						   "eventPrintFailed", "eventPrintPaused", "eventUserActionNeeded", "eventError",
+						   "event_print_progress", "event_print_progress_interval", "eventPrintStartedMessage",
+						   "eventPrintDoneMessage", "eventPrintFailedMessage", "eventPrintPausedMessage",
+						   "eventUserActionNeededMessage", "eventPrintProgressMessage", "eventErrorMessage",
+						   "headers", "data", "http_method", "content_type", "oauth", "oauth_url", "oauth_headers",
+						   "oauth_data", "oauth_http_method", "oauth_content_type", "test_event", "webhook_enabled"]
+			hooks = self._settings.get(["hooks"])
+			hook = dict()
+			for i in range(0, len(hook_params)):
+				key = hook_params[i]
+				hook[key] = self._settings.get([key])
+			# now store the hook
+			self._logger.info("New Hook: " + str(hook))
+			hooks = [hook]
+			self._settings.set(["hooks"], hooks)
+			self._settings.set(["settings_version"], 2)
+			self._settings.save()
+			self._logger.info("Hooks: " + str(self._settings.get(["hooks"])))
+		# self._settings.set(["hooks"], [])
+		# self._settings.set(["settings_version"], 1)
+		# self._settings.save()
+
 
 	def get_settings_defaults(self):
 		return dict(url="", apiSecret="", deviceIdentifier="",
@@ -137,7 +168,10 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					oauth_data='{\n  "client_id":"myClient",\n  "client_secret":"mySecret",\n  "grant_type":"client_credentials"\n}',
 					oauth_http_method="POST",
 					oauth_content_type="JSON",
-					test_event="PrintStarted"
+					test_event="PrintStarted",
+					webhook_enabled=True,
+					settings_version=1,
+					hooks=[]
 					)
 
 	def get_template_configs(self):
@@ -148,7 +182,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 	def get_assets(self):
 		return dict(
 			css=["css/webhooks.css"],
-			js=["js/webhooks.js"]
+			js=["js/webhooks.js"],
+			json=["templates/simple.json", "templates/fulldata.json", "templates/snapshot.json", "templates/oauth.json", "templates/dotnotation.json"]
 		)
 
 	def register_custom_events(self, *args, **kwargs):
@@ -159,23 +194,29 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		if self.last_print_progress > progress:
 			self.last_print_progress = -1
 		# Get the settings
-		active = self._settings.get(["event_print_progress"])
-		event_print_progress_interval = self._settings.get(["event_print_progress_interval"])
-		#self._logger.info("Print Progress" + storage + " - " + path + " - {0}".format(progress))
-		if active:
-			try:
-				interval = int(event_print_progress_interval)
-				# Now loop over all the missed progress events and see if they match
-				for p in range(self.last_print_progress + 1, progress + 1):
-					if p % interval == 0 and p != 0 and p != 100:
-						# Send the event for print progress
-						self.last_print_progress_milestone = p
-						eventManager().fire(Events.PLUGIN_WEBHOOKS_PROGRESS)
-				# Update the last print progress
-				self.last_print_progress = progress
-			except Exception as e:
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=True, msg="Invalid Setting for PRINT PROGRESS INTERVAL please use a number without any special characters instead of " + event_print_progress_interval))
-				return
+		hooks = self._settings.get(["hooks"])
+		for hook_index in range(0, len(hooks)):
+			hook = hooks[hook_index]
+			active = hook["event_print_progress"]
+			event_print_progress_interval = hook["event_print_progress_interval"]
+			#self._logger.info("Print Progress" + storage + " - " + path + " - {0}".format(progress))
+			if active:
+				try:
+					interval = int(event_print_progress_interval)
+					# Now loop over all the missed progress events and see if they match
+					for p in range(self.last_print_progress + 1, progress + 1):
+						if p % interval == 0 and p != 0 and p != 100:
+							# Send the event for print progress
+							if len(self.last_print_progress_milestones) > hook_index:
+								self.last_print_progress_milestones[hook_index] = p
+							else:
+								self.last_print_progress_milestones.append(p)
+							eventManager().fire(Events.PLUGIN_WEBHOOKS_PROGRESS)
+					# Update the last print progress
+					self.last_print_progress = progress
+				except Exception as e:
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=True, msg="Invalid Setting for PRINT PROGRESS INTERVAL please use a number without any special characters instead of " + event_print_progress_interval))
+					continue
 
 	def get_api_commands(self):
 		return dict(
@@ -190,8 +231,13 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			if "event" in data:
 				event_name = data["event"]
 			if event_name == "plugin_webhooks_progress":
-				self.last_print_progress_milestone = 50
-			self.on_event(event_name, {
+				hooks = self._settings.get(["hooks"])
+				for hook_index in range(0, len(hooks)):
+					if len(self.last_print_progress_milestones) > hook_index:
+						self.last_print_progress_milestones[hook_index] = 50
+					else:
+						self.last_print_progress_milestones.append(50)
+			event_data = {
 				"name": "example.gcode",
 				"path": "example.gcode",
 				"origin": "local",
@@ -199,7 +245,10 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				"owner": "example_user",
 				"time": 50.237335886,
 				"popup": True
-			})
+			}
+			if "hook_index" in data:
+				event_data["hook_index"] = int(data["hook_index"])
+			self.on_event(event_name, event_data)
 
 	# Returns a dictionary of the current job information
 	def get_job_information(self):
@@ -227,213 +276,242 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			return {}
 
 	def on_event(self, event, payload):
-		topic = "Unknown"
-		message = "Unknown"
-		extra = payload
-		# 0) Determine the topic and message parameters and if we are parsing this event.
-		if event == Events.PRINT_STARTED and self._settings.get(["eventPrintStarted"]):
-			topic = "Print Started"
-			message = self._settings.get(["eventPrintStartedMessage"])
-		elif event == Events.PRINT_DONE and self._settings.get(["eventPrintDone"]):
-			topic = "Print Done"
-			message = self._settings.get(["eventPrintDoneMessage"])
-		elif event == Events.PRINT_FAILED and self._settings.get(["eventPrintFailed"]):
-			topic = "Print Failed"
-			message = self._settings.get(["eventPrintFailedMessage"])
-		elif event == Events.PRINT_PAUSED and self._settings.get(["eventPrintPaused"]):
-			topic = "Print Paused"
-			message = self._settings.get(["eventPrintPausedMessage"])
-		elif event == Events.PLUGIN_WEBHOOKS_NOTIFY and self._settings.get(["eventUserActionNeeded"]):
-			topic = "User Action Needed"
-			message = self._settings.get(["eventUserActionNeededMessage"])
-		elif event == Events.PLUGIN_WEBHOOKS_PROGRESS and self._settings.get(["event_print_progress"]):
-			topic = "Print Progress"
-			message = self._settings.get(["eventPrintProgressMessage"])
-		elif event == Events.ERROR and self._settings.get(["eventError"]):
-			topic = "Error"
-			message = self._settings.get(["eventErrorMessage"])
-		else:
-			return
-		self._logger.info("P EVENT " + topic + " - " + message)
-		# 1) If necessary, make an OAuth request to get back an access token.
-		oauth = self._settings.get(["oauth"])
-		oauth_result = dict()
-		oauth_passed = False
-		if oauth:
-			parsed_oauth_headers = False
+		# A) Get all the data that only needs to be calculated once.
+		# A.1) Get the snapshot
+		snap = None
+		# A.2) Get the metadata
+		job_info = self.get_job_information()
+
+		hooks = self._settings.get(["hooks"])
+		for hook_index in range(0, len(hooks)):
+			hook = hooks[hook_index]
+			if "hook_index" in payload and payload["hook_index"] != hook_index:
+				# This is a test webhook that only needs to be sent to one hook.
+				continue
+			if "webhook_enabled" in hook and not hook["webhook_enabled"]:
+				# Hook not enabled. Need to continue on to the next hook.
+				if "hook_index" in payload:
+					# Display an error and tell the user to enable their webhook.
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Your webhook is disabled. Check the ENABLED box to test this webhook."))
+				continue
+			self._logger.info("hook: " + str(hook))
+
+			# A.3) Get the last print complete milestone
+			percent_complete_milestone = 0
+			if len(self.last_print_progress_milestones) > hook_index:
+				percent_complete_milestone = self.last_print_progress_milestones[hook_index]
+
+			topic = "Unknown"
+			message = "Unknown"
+			extra = payload
+			# 0) Determine the topic and message parameters and if we are parsing this event.
+			if event == Events.PRINT_STARTED and hook["eventPrintStarted"]:
+				topic = "Print Started"
+				message = hook["eventPrintStartedMessage"]
+			elif event == Events.PRINT_DONE and hook["eventPrintDone"]:
+				topic = "Print Done"
+				message = hook["eventPrintDoneMessage"]
+			elif event == Events.PRINT_FAILED and hook["eventPrintFailed"]:
+				topic = "Print Failed"
+				message = hook["eventPrintFailedMessage"]
+			elif event == Events.PRINT_PAUSED and hook["eventPrintPaused"]:
+				topic = "Print Paused"
+				message = hook["eventPrintPausedMessage"]
+			elif event == Events.PLUGIN_WEBHOOKS_NOTIFY and hook["eventUserActionNeeded"]:
+				topic = "User Action Needed"
+				message = hook["eventUserActionNeededMessage"]
+			elif event == Events.PLUGIN_WEBHOOKS_PROGRESS and hook["event_print_progress"]:
+				topic = "Print Progress"
+				message = hook["eventPrintProgressMessage"]
+			elif event == Events.ERROR and hook["eventError"]:
+				topic = "Error"
+				message = hook["eventErrorMessage"]
+			else:
+				return
+			self._logger.info("P EVENT " + topic + " - " + message)
+			# 1) If necessary, make an OAuth request to get back an access token.
+			oauth = hook["oauth"]
+			oauth_result = dict()
+			oauth_passed = False
+			if oauth:
+				parsed_oauth_headers = 0
+				try:
+					# 1.1) Get the request data and headers
+					oauth_url = hook["oauth_url"]
+					oauth_headers = json.loads(hook["oauth_headers"])
+					parsed_oauth_headers = 1
+					oauth_data = json.loads(hook["oauth_data"])
+					parsed_oauth_headers = 2
+					oauth_http_method = hook["oauth_http_method"]
+					oauth_content_type = hook["oauth_content_type"]
+					# 1.2) Send the request
+					self._logger.info("Sending OAuth Request")
+					response = ""
+					if oauth_http_method == "GET":
+						response = requests.get(oauth_url, params=oauth_data, headers=oauth_headers)
+					else:
+						if oauth_content_type == "JSON":
+							# Make sure the Content-Type header is set to application/json
+							oauth_headers = check_for_header(oauth_headers, "content-type", "application/json")
+							# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+							# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+							response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers)
+						else:
+							# Make sure the Content-Type header is set to application/x-www-form-urlencoded
+							oauth_headers = check_for_header(oauth_headers, "content-type", "application/x-www-form-urlencoded")
+							# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
+							# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
+							response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers)
+					# 1.3) Check to make sure we got a valid response code.
+					self._logger.info("OAuth Response: " + " - " + response.text)
+					code = response.status_code
+					if 200 <= code < 400:
+						oauth_result = response.json()
+						oauth_passed = True
+						self._logger.info("OAuth Passed")
+					else:
+						self._logger.info("Invalid OAuth Response Code %s" % code)
+						self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid OAuth Response: " + response.text))
+				except requests.exceptions.RequestException as e:
+					self._logger.info("OAuth API Error: " + str(e))
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="OAuth API Error: " + str(e)))
+				except Exception as e:
+					if parsed_oauth_headers == 1:
+						self._logger.info("OAuth JSON Parse Issue for DATA")
+						self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks OAUTH DATA Settings"))
+					elif parsed_oauth_headers == 0:
+						self._logger.info("OAuth JSON Parse Issue for HEADERS")
+						self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks OAUTH HEADERS Settings"))
+					else:
+						self._logger.info("Unknown OAuth Issue: " + str(e))
+						self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Unknown Issue when trying to call OAUTH API."))
+			else:
+				oauth_passed = True
+			# Make sure we passed the oauth check
+			if not oauth_passed:
+				# Oauth not passed
+				self._logger.info("Not sending request - OAuth not passed")
+				return
+			# Send the notification
+			# 2) Call the API
+			parsed_headers = 0
 			try:
-				# 1.1) Get the request data and headers
-				oauth_url = self._settings.get(["oauth_url"])
-				oauth_headers = json.loads(self._settings.get(["oauth_headers"]))
-				parsed_oauth_headers = True
-				oauth_data = json.loads(self._settings.get(["oauth_data"]))
-				oauth_http_method = self._settings.get(["oauth_http_method"])
-				oauth_content_type = self._settings.get(["oauth_content_type"])
-				# 1.2) Send the request
-				self._logger.info("Sending OAuth Request")
+				url = hook["url"]
+				api_secret = hook["apiSecret"]
+				device_identifier = hook["deviceIdentifier"]
+				headers = json.loads(hook["headers"])
+				parsed_headers = 1
+				data = json.loads(hook["data"])
+				parsed_headers = 2
+				http_method = hook["http_method"]
+				content_type = hook["content_type"]
+				# 2.1) Create a dictionary of all possible replacement variables.
+				values = {}
+				if extra is dict:
+					values = extra
+				values2 = {
+					"topic": topic,
+					"message": message,
+					"apiSecret": api_secret,
+					"deviceIdentifier": device_identifier,
+					"extra": extra,
+					"currentTime": int(time.time()),
+					"percentCompleteMilestone": percent_complete_milestone
+				}
+				values.update(values2)
+				# 2.2) Get the current job information from the API
+				job_values = {}
+				job_keys = ["state", "job", "currentZ", "progress", "offsets", "meta"]
+				for jit in range(0, len(job_keys)):
+					if job_keys[jit] in job_info:
+						job_values[job_keys[jit]] = job_info[job_keys[jit]]
+				values.update(job_values)
+				# 2.3) Get a snapshot image if necessary
+				uploading_file = False
+				uploading_file_name = ""
+				for uk in data:
+					if data[uk] == "@snapshot":
+						uploading_file = True
+						uploading_file_name = uk
+						break
+				if uploading_file:
+					del data[uploading_file_name]
+					# Try to get a snapshot if necessary
+					if snap is None:
+						snap = self.get_snapshot()
+					if snap is not None:
+						self._logger.info("snapshot retrieved")
+					else:
+						uploading_file = False
+				# 2.4) Merge these values with the oauth values.
+				values.update(oauth_result)
+				# 2.5) Replace the data and header elements that start with @
+				data = replace_dict_with_data(data, values)
+				headers = replace_dict_with_data(headers, values)
+				# 2.6) Send the request
 				response = ""
-				if oauth_http_method == "GET":
-					response = requests.get(oauth_url, params=oauth_data, headers=oauth_headers)
+				if http_method == "GET":
+					# Note: we can't upload a file with GET.
+					response = requests.get(url, params=data, headers=headers)
 				else:
-					if oauth_content_type == "JSON":
+					if uploading_file:
+						# Delete the Content-Type header if provided so that requests can set it on its own
+						to_remove = []
+						for hk in headers:
+							if "content-type" in hk.lower():
+								to_remove.append(hk)
+						for el in to_remove:
+							del headers[el]
+						# We need to inner json_encode any dictionaries and arrays.
+						data = inner_json_encode(data)
+						self._logger.info("headers: " + json.dumps(headers))
+						self._logger.info("data: " + json.dumps(data))
+						self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+						self._logger.info("sending snapshot as parameter: " + uploading_file_name)
+						files = {
+							uploading_file_name: ("snapshot.jpg", snap, "image/jpeg")
+						}
+						response = requests.request(http_method, url, files=files, data=data, headers=headers)
+					elif content_type == "JSON":
 						# Make sure the Content-Type header is set to application/json
-						oauth_headers = check_for_header(oauth_headers, "content-type", "application/json")
-						# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
-						# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
-						response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers)
+						headers = check_for_header(headers, "content-type", "application/json")
+						self._logger.info("headers: " + json.dumps(headers))
+						self._logger.info("data: " + json.dumps(data))
+						self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+						response = requests.request(http_method, url, json=data, headers=headers)
 					else:
 						# Make sure the Content-Type header is set to application/x-www-form-urlencoded
-						oauth_headers = check_for_header(oauth_headers, "content-type", "application/x-www-form-urlencoded")
-						# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
-						# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
-						response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers)
-				# 1.3) Check to make sure we got a valid response code.
-				self._logger.info("OAuth Response: " + " - " + response.text)
+						headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
+						# We need to inner json_encode any dictionaries and arrays.
+						data = inner_json_encode(data)
+						self._logger.info("headers: " + json.dumps(headers))
+						self._logger.info("data: " + json.dumps(data))
+						self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
+						response = requests.request(http_method, url, data=data, headers=headers)
+				self._logger.info("Response: " + response.text)
+				# Try to parse the response if possible.
 				code = response.status_code
 				if 200 <= code < 400:
-					oauth_result = response.json()
-					oauth_passed = True
-					self._logger.info("OAuth Passed")
+					self._logger.info("API SUCCESS: " + event + " " + response.text)
+					# Optionally show a message of success if the payload has popup=True
+					if type(payload) is dict and "popup" in payload:
+						self._plugin_manager.send_plugin_message(self._identifier, dict(type="success", hide=True, msg="Response: " + response.text))
 				else:
-					self._logger.info("Invalid OAuth Response Code %s" % code)
-					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid OAuth Response: " + response.text))
+					self._logger.info("API Bad Response Code: %s" % code)
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid API Response: " + response.text))
 			except requests.exceptions.RequestException as e:
-				self._logger.info("OAuth API Error: " + str(e))
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="OAuth API Error: " + str(e)))
+				self._logger.info("API ERROR: " + str(e))
+				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="API Error: " + str(e)))
 			except Exception as e:
-				if parsed_oauth_headers:
-					self._logger.info("OAuth JSON Parse Issue for DATA")
-					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks OAUTH DATA Settings"))
+				if parsed_headers == 1:
+					self._logger.info("JSON Parse DATA Issue: " + str(e))
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks DATA Setting"))
+				elif parsed_headers == 0:
+					self._logger.info("JSON Parse HEADERS Issue: " + str(e))
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks HEADERS Setting"))
 				else:
-					self._logger.info("OAuth JSON Parse Issue for HEADERS")
-					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks OAUTH HEADERS Settings"))
-		else:
-			oauth_passed = True
-		# Make sure we passed the oauth check
-		if not oauth_passed:
-			# Oauth not passed
-			self._logger.info("Not sending request - OAuth not passed")
-			return
-		# Send the notification
-		# 2) Call the API
-		parsed_headers = 0
-		try:
-			url = self._settings.get(["url"])
-			api_secret = self._settings.get(["apiSecret"])
-			device_identifier = self._settings.get(["deviceIdentifier"])
-			headers = json.loads(self._settings.get(["headers"]))
-			parsed_headers = 1
-			data = json.loads(self._settings.get(["data"]))
-			parsed_headers = 2
-			http_method = self._settings.get(["http_method"])
-			content_type = self._settings.get(["content_type"])
-			# 2.1) Create a dictionary of all possible replacement variables.
-			values = {}
-			if extra is dict:
-				values = extra
-			values2 = {
-				"topic": topic,
-				"message": message,
-				"apiSecret": api_secret,
-				"deviceIdentifier": device_identifier,
-				"extra": extra,
-				"currentTime": int(time.time()),
-				"percentCompleteMilestone": self.last_print_progress_milestone
-			}
-			values.update(values2)
-			# 2.2) Get the current job information from the API
-			job_info = self.get_job_information()
-			job_values = {}
-			job_keys = ["state", "job", "currentZ", "progress", "offsets", "meta"]
-			for jit in range(0, len(job_keys)):
-				if job_keys[jit] in job_info:
-					job_values[job_keys[jit]] = job_info[job_keys[jit]]
-			values.update(job_values)
-			# 2.3) Get a snapshot image if necessary
-			uploading_file = False
-			uploading_file_name = ""
-			for uk in data:
-				if data[uk] == "@snapshot":
-					uploading_file = True
-					uploading_file_name = uk
-					break
-			snap = None
-			if uploading_file:
-				del data[uploading_file_name]
-				snap = self.get_snapshot()
-				if snap is not None:
-					self._logger.info("snapshot retrieved")
-				else:
-					uploading_file = False
-			# 2.4) Merge these values with the oauth values.
-			values.update(oauth_result)
-			# 2.5) Replace the data and header elements that start with @
-			data = replace_dict_with_data(data, values)
-			headers = replace_dict_with_data(headers, values)
-			# 2.6) Send the request
-			response = ""
-			if http_method == "GET":
-				# Note: we can't upload a file with GET.
-				response = requests.get(url, params=data, headers=headers)
-			else:
-				if uploading_file:
-					# Delete the Content-Type header if provided so that requests can set it on its own
-					to_remove = []
-					for hk in headers:
-						if "content-type" in hk.lower():
-							to_remove.append(hk)
-					for el in to_remove:
-						del headers[el]
-					# We need to inner json_encode any dictionaries and arrays.
-					data = inner_json_encode(data)
-					self._logger.info("headers: " + json.dumps(headers))
-					self._logger.info("data: " + json.dumps(data))
-					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
-					self._logger.info("sending snapshot as parameter: " + uploading_file_name)
-					files = {
-						uploading_file_name: ("snapshot.jpg", snap, "image/jpeg")
-					}
-					response = requests.request(http_method, url, files=files, data=data, headers=headers)
-				elif content_type == "JSON":
-					# Make sure the Content-Type header is set to application/json
-					headers = check_for_header(headers, "content-type", "application/json")
-					self._logger.info("headers: " + json.dumps(headers))
-					self._logger.info("data: " + json.dumps(data))
-					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
-					response = requests.request(http_method, url, json=data, headers=headers)
-				else:
-					# Make sure the Content-Type header is set to application/x-www-form-urlencoded
-					headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
-					# We need to inner json_encode any dictionaries and arrays.
-					data = inner_json_encode(data)
-					self._logger.info("headers: " + json.dumps(headers))
-					self._logger.info("data: " + json.dumps(data))
-					self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
-					response = requests.request(http_method, url, data=data, headers=headers)
-			self._logger.info("Response: " + response.text)
-			# Try to parse the response if possible.
-			code = response.status_code
-			if 200 <= code < 400:
-				self._logger.info("API SUCCESS: " + event + " " + response.text)
-				# Optionally show a message of success if the payload has popup=True
-				if type(payload) is dict and "popup" in payload:
-					self._plugin_manager.send_plugin_message(self._identifier, dict(type="success", hide=True, msg="Response: " + response.text))
-			else:
-				self._logger.info("API Bad Response Code: %s" % code)
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Invalid API Response: " + response.text))
-		except requests.exceptions.RequestException as e:
-			self._logger.info("API ERROR: " + str(e))
-			self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="API Error: " + str(e)))
-		except Exception as e:
-			if parsed_headers == 1:
-				self._logger.info("JSON Parse DATA Issue: " + str(e))
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks DATA Setting"))
-			elif parsed_headers == 0:
-				self._logger.info("JSON Parse HEADERS Issue: " + str(e))
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Invalid JSON for Webhooks HEADERS Setting"))
-			else:
-				self._logger.info("Unknown Issue: " + str(e))
-				self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Unknown Issue when trying to call API."))
+					self._logger.info("Unknown Issue: " + str(e))
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", msg="Unknown Issue when trying to call API."))
 
 	def recv_callback(self, comm_instance, line, *args, **kwargs):
 		# Found keyword, fire event and block until other text is received

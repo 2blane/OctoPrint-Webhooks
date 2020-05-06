@@ -1,0 +1,17 @@
+{
+  "content_type": "JSON",
+  "data": "{\n  \"deviceIdentifier\":\"@deviceIdentifier\",\n  \"apiSecret\":\"@apiSecret\",\n  \"topic\":\"@topic\",\n  \"message\":\"@progress.completion % complete - @message\",\n  \"printSize\": \"@meta.analysis.dimensions.width mm wide x @meta.analysis.dimensions.depth mm deep x @meta.analysis.dimensions.height mm tall\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "50",
+  "headers": "{\n  \"Content-Type\": \"application/json\"\n}",
+  "http_method": "POST",
+  "oauth": false,
+  "_name": "Dot Notation Example",
+  "_description": "This template shows how to use dot notation to create custom messages and send custom data elements. See the DATA setting for details."
+}

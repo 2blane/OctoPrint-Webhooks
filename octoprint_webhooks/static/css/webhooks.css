@@ -8,6 +8,10 @@
 .control-header {
     margin: 40px 0px 0px 0px;
 }
+.control-header-pushable {
+    cursor: pointer;
+    color: #0080c0;
+}
 .input-button {
     margin-bottom: 10px;
     background: white;
@@ -41,4 +45,67 @@
 }
 .control-group-event {
     margin-bottom: 5px;
+}
+.webhooksTable {
+    color: black;
+    width: 100%;
+}
+.webhooksTable th {
+    text-align: left;
+}
+.webhooksTable tr {
+    background: #FFFFFF;
+    border-bottom: 1px solid #F0F0F0;
+}
+.selectedHookRow {
+    background: #e0fff6 !important;
+    font-weight: 500;
+}
+.webhooksTable thead tr {
+    background: #FFFFFF;
+}
+.webhooksTable td {
+    padding: 4px;
+}
+.webhooksTableActionsTD {
+    width: 100px;
+    text-align: center;
+}
+.webhooksTableActionsTD .btn-mini {
+    margin: 2px 0px;
+}
+.webhooksTableActionsTH {
+    width: 100px;
+}
+.hideElement {
+    display: none !important;
+}
+.webhookCreateButton {
+    margin-top: 10px
+}
+.webhookDisabledTag {
+    background: #CDBDE2;
+    border-radius: 4px;
+    padding: 4px;
+    color: black;
+}
+.webhookOAuthTag {
+    background: #D4E9CC;
+    border-radius: 4px;
+    padding: 4px;
+    color: black;
+}
+.webhookEventTag {
+    background: #E4F9F6;
+    border-radius: 13px;
+    border: 1px solid #26E2B9;
+    padding: 0px 6px;
+    color: #26E2B9;
+    font-weight: 300;
+    font-size: 10px;
+    display: inline-block;
+    margin: 10px 2px 0px 2px;
+}
+.templateControl {
+    margin: 20px 0px 0px 0px;
 }
