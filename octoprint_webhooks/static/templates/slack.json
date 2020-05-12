@@ -1,0 +1,17 @@
+{
+  "content_type": "JSON",
+  "data": "{\n  \"text\": \"@message on printer @deviceIdentifier\",\n  \"icon_emoji\": \":octopus:\",\n  \"username\": \"OctoPrint-Webhooks\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "50",
+  "headers": "{\n  \"Content-Type\": \"application/json\"\n}",
+  "http_method": "POST",
+  "oauth": false,
+  "_name": "Slack Message",
+  "_description": "This template will send a message to your Slack Team. Inside Slack, you need to add an app called 'Incoming WebHooks'. Copy and paste the Webhook URL as the URL for this webhook. Then, you should be able to test out your integration and see a message appear in the channel you defined within Slack. Note: your URL should look something like https://hooks.slack.com/services/ABC/DEF/123"
+}

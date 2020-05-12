@@ -30,19 +30,23 @@ $(function() {
             //Select the first hook. There should always be a selected hook.
             self.selectHook(0)
             //Get the list of available templates.
-            let templates = ["simple.json", "fulldata.json", "snapshot.json", "oauth.json", "dotnotation.json"]
+            let templates = ["simple.json", "fulldata.json", "snapshot.json",
+                "oauth.json", "dotnotation.json", "slack.json", "plivo.json"]
             let callbacksLeft = templates.length;
             for (let i = 0; i < templates.length; i = i + 1) {
                 let templateFile = "plugin/webhooks/static/templates/" + templates[i]
+                console.log("loading template" + templates[i])
                 $.getJSON(templateFile, function(data) {
                     console.log("json file: ", data)
                     self.availableTemplates.push(data)
-                    console.log("available templates: ", self.availableTemplates())
+                    //console.log("available templates: ", self.availableTemplates())
                     callbacksLeft -= 1;
                     if (callbacksLeft == 0) {
                         self.template(self.availableTemplates()[0])
-                        console.log("selected template: ", self.template())
+                        //console.log("selected template: ", self.template())
                     }
+                }).fail(function(jqxhr, textStatus, error) {
+                    console.log("Failed to get the template for " + templateFile, jqxhr, textStatus, error)
                 })
             }
         }
@@ -186,27 +190,31 @@ $(function() {
             self.selectedIndex(self.settings.settings.plugins.webhooks.hooks().length - 1)
         }
 
+        self.usingSnapshot = function() {
+            return false
+        }
+
         self.resetDataToDefaults = function() {
             // Update the data to be defaulted.
-            self.settings.settings.plugins.webhooks.data('{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra",\n  "state": "@state",\n  "job": "@job",\n  "progress": "@progress",\n  "currentZ": "@currentZ",\n  "offsets": "@offsets",\n  "meta": "@meta",\n  "currentTime": "@currentTime",\n  "snapshot": "@snapshot"\n}')
+            self.selectedHook().data('{\n  "deviceIdentifier":"@deviceIdentifier",\n  "apiSecret":"@apiSecret",\n  "topic":"@topic",\n  "message":"@message",\n  "extra":"@extra",\n  "state": "@state",\n  "job": "@job",\n  "progress": "@progress",\n  "currentZ": "@currentZ",\n  "offsets": "@offsets",\n  "meta": "@meta",\n  "currentTime": "@currentTime",\n  "snapshot": "@snapshot"\n}')
             console.log("Webhooks Reset DATA to Defaults Pressed")
         }
 
         self.resetHeadersToDefaults = function() {
             // Update the data to be defaulted.
-            self.settings.settings.plugins.webhooks.headers('{\n  "Content-Type": "application/json"\n}')
+            self.selectedHook().headers('{\n  "Content-Type": "application/json"\n}')
             console.log("Webhooks Reset HEADERS to Defaults Pressed")
         }
 
         self.resetOAuthDataToDefaults = function() {
             // Update the data to be defaulted.
-            self.settings.settings.plugins.webhooks.oauth_data('{\n  "client_id":"myClient",\n  "client_secret":"mySecret",\n  "grant_type":"client_credentials"\n}')
+            self.selectedHook().oauth_data('{\n  "client_id":"myClient",\n  "client_secret":"mySecret",\n  "grant_type":"client_credentials"\n}')
             console.log("Webhooks Reset OAUTH_DATA to Defaults Pressed")
         }
 
         self.resetOAuthHeadersToDefaults = function() {
             // Update the data to be defaulted.
-            self.settings.settings.plugins.webhooks.oauth_headers('{\n  "Content-Type": "application/json"\n}')
+            self.selectedHook().oauth_headers('{\n  "Content-Type": "application/json"\n}')
             console.log("Webhooks Reset OAUTH_HEADERS to Defaults Pressed")
         }
 
@@ -233,12 +241,14 @@ $(function() {
             // 1) Save the user settings.
             data = ko.mapping.toJS(self.settings.settings.plugins.webhooks);
             console.log("WEBHOOKS - ", data)
+            console.log("SELECT VALUE - ", self.selectedHook().test_event(), document.getElementById("selectTestEvent").value)
             return OctoPrint.settings.savePluginSettings("webhooks", data)
                 .done(function(data, status, xhr) {
                     //saved
                     console.log("settings saved")
                     // 2) Send a test event to the python backend.
-                    event = self.settings.settings.plugins.webhooks.test_event()
+                    event = self.selectedHook().test_event()
+                    console.log("TEST EVENT - ", event)
                     client.postJson("api/plugin/webhooks", {"command":"testhook", "event":event, "hook_index": self.selectedIndex()})
                 })
                 .fail(function(xhr, status, error) {

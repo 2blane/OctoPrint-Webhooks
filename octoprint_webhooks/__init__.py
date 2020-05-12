@@ -183,7 +183,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		return dict(
 			css=["css/webhooks.css"],
 			js=["js/webhooks.js"],
-			json=["templates/simple.json", "templates/fulldata.json", "templates/snapshot.json", "templates/oauth.json", "templates/dotnotation.json"]
+			json=["templates/simple.json", "templates/fulldata.json", "templates/snapshot.json",
+				  "templates/oauth.json", "templates/dotnotation.json", "templates/slack.json", "templates/plivo.json"]
 		)
 
 	def register_custom_events(self, *args, **kwargs):
@@ -327,6 +328,10 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				topic = "Error"
 				message = hook["eventErrorMessage"]
 			else:
+				if "hook_index" in payload:
+					# This is a test event - show a message to the user that they need to enable this event.
+					msg = "This event is disabled. Please enable the event %s to test." % event
+					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg=msg))
 				return
 			self._logger.info("P EVENT " + topic + " - " + message)
 			# 1) If necessary, make an OAuth request to get back an access token.
@@ -428,9 +433,11 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				values.update(job_values)
 				# 2.3) Get a snapshot image if necessary
 				uploading_file = False
+				try_to_upload_file = False
 				uploading_file_name = ""
 				for uk in data:
 					if data[uk] == "@snapshot":
+						try_to_upload_file = True
 						uploading_file = True
 						uploading_file_name = uk
 						break
@@ -454,7 +461,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					# Note: we can't upload a file with GET.
 					response = requests.get(url, params=data, headers=headers)
 				else:
-					if uploading_file:
+					if try_to_upload_file:
 						# Delete the Content-Type header if provided so that requests can set it on its own
 						to_remove = []
 						for hk in headers:

@@ -21,7 +21,7 @@
                         <span class="webhookDisabledTag" data-bind="css: { 'hideElement' : webhook_enabled() }">Disabled</span>
                         <span class="webhookOAuthTag" data-bind="css: { 'hideElement' : !oauth() }">OAuth</span>
                         <!-- URL -->
-                        <span data-bind="text: url().length == 0 ? 'New Webhook' : url()" }></span>
+                        <span css="text-overflow:ellipsis;" data-bind="text: url().length == 0 ? 'New Webhook' : url()" }></span>
 
                         <br/>
                         <!-- EVENTS -->
@@ -384,6 +384,10 @@
             </div>
             <div class="control-description">
                 Provide a JSON dictionary of parameters that will be passed along with each request.
+            </div>
+            <div class="control-description" style="margin-top:-10px;font-weight:600;" data-bind="css: { 'hideElement': !data().includes('@snapshot') }">
+                NOTE: Because you have used @snapshot, the Content-Type will automatically get overridden to 'form/multipart-data'
+                so the image can be sent in the API request.
             </div>
         </div>
 

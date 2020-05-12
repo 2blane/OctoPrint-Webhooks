@@ -1,0 +1,18 @@
+{
+  "url": "https://api.plivo.com/v1/Account/TODO_REPLACE_WITH_YOUR_AUTH_ID/Message/",
+  "content_type": "JSON",
+  "data": "{\n  \"src\": \"TODO_REPLACE_WITH_YOUR_PLIVO_PHONE_NUMBER\",\n  \"dst\": \"TODO_REPLACE_WITH_YOUR_PHONE_NUMBER\",\n  \"text\": \"@message on printer @deviceIdentifier\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "50",
+  "headers": "{\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Basic TODO_REPLACE_WITH_YOUR_BASE_64_ENCODED_STRING_OF(auth_id:auth_token)\"\n}",
+  "http_method": "POST",
+  "oauth": false,
+  "_name": "Plivo Message",
+  "_description": "This template allows you to send a text message to your phone integrating with Plivo. 1) In the URL insert your AUTH_ID found on your Plivo dashboard. 2) Inside Advanced - DATA, replace 'src' and 'dst' with the sending and receiving phone number (src is the Plivo number, dst is your phone number) no spaces or characters. For example: 12223334444 instead of 1 (222) 333-4444. 3) Inside HEADERS, you need to set base64_encode(auth_id:auth_token). You can use this site: https://www.base64encode.org to do that. Just put auth_id:auth_token in the box, hit encode, then copy and paste the response into the HEADERS field where it says TODO. When you are done, it should look similar to 'BASIC AJkldsjfownvdjfosjfOISDfbowef=='"
+}

@@ -66,6 +66,7 @@
 }
 .webhooksTable td {
     padding: 4px;
+    text-overflow: ellipsis;
 }
 .webhooksTableActionsTD {
     width: 100px;
