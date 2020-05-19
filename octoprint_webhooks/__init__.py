@@ -194,13 +194,14 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		# Reset in case of multiple prints
 		if self.last_print_progress > progress:
 			self.last_print_progress = -1
+			self.last_print_progress_milestones = []
 		# Get the settings
 		hooks = self._settings.get(["hooks"])
 		for hook_index in range(0, len(hooks)):
 			hook = hooks[hook_index]
 			active = hook["event_print_progress"]
 			event_print_progress_interval = hook["event_print_progress_interval"]
-			#self._logger.info("Print Progress" + storage + " - " + path + " - {0}".format(progress))
+			#self._logger.info("Print Progress" + storage + " - " + path + " - {0}".format(progress) + " - hook_index:{0}".format(hook_index) + " - active:{0}".format(active))
 			if active:
 				try:
 					interval = int(event_print_progress_interval)
@@ -212,6 +213,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 								self.last_print_progress_milestones[hook_index] = p
 							else:
 								self.last_print_progress_milestones.append(p)
+							#self._logger.info("Fire Print Progress Event {0}".format(p))
 							eventManager().fire(Events.PLUGIN_WEBHOOKS_PROGRESS)
 					# Update the last print progress
 					self.last_print_progress = progress
@@ -283,6 +285,8 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		# A.2) Get the metadata
 		job_info = self.get_job_information()
 
+		if payload is None:
+			payload = {}
 		hooks = self._settings.get(["hooks"])
 		for hook_index in range(0, len(hooks)):
 			hook = hooks[hook_index]
@@ -295,7 +299,6 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					# Display an error and tell the user to enable their webhook.
 					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg="Your webhook is disabled. Check the ENABLED box to test this webhook."))
 				continue
-			self._logger.info("hook: " + str(hook))
 
 			# A.3) Get the last print complete milestone
 			percent_complete_milestone = 0
@@ -360,13 +363,13 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 							oauth_headers = check_for_header(oauth_headers, "content-type", "application/json")
 							# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
 							# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
-							response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers)
+							response = requests.request(oauth_http_method, oauth_url, json=oauth_data, headers=oauth_headers, timeout=30)
 						else:
 							# Make sure the Content-Type header is set to application/x-www-form-urlencoded
 							oauth_headers = check_for_header(oauth_headers, "content-type", "application/x-www-form-urlencoded")
 							# self._logger.info("oauth headers: " + json.dumps(oauth_headers) + " - data: " + json.dumps(oauth_data))
 							# self._logger.info("oauth_http_method: " + oauth_http_method + " - oauth_content_type: " + oauth_content_type)
-							response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers)
+							response = requests.request(oauth_http_method, oauth_url, data=oauth_data, headers=oauth_headers, timeout=30)
 					# 1.3) Check to make sure we got a valid response code.
 					self._logger.info("OAuth Response: " + " - " + response.text)
 					code = response.status_code
@@ -459,7 +462,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				response = ""
 				if http_method == "GET":
 					# Note: we can't upload a file with GET.
-					response = requests.get(url, params=data, headers=headers)
+					response = requests.get(url, params=data, headers=headers, timeout=10)
 				else:
 					if try_to_upload_file:
 						# Delete the Content-Type header if provided so that requests can set it on its own
@@ -478,6 +481,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 						files = {
 							uploading_file_name: ("snapshot.jpg", snap, "image/jpeg")
 						}
+						# No timeout when uploading file as this could take some time.
 						response = requests.request(http_method, url, files=files, data=data, headers=headers)
 					elif content_type == "JSON":
 						# Make sure the Content-Type header is set to application/json
@@ -485,7 +489,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 						self._logger.info("headers: " + json.dumps(headers))
 						self._logger.info("data: " + json.dumps(data))
 						self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
-						response = requests.request(http_method, url, json=data, headers=headers)
+						response = requests.request(http_method, url, json=data, headers=headers, timeout=30)
 					else:
 						# Make sure the Content-Type header is set to application/x-www-form-urlencoded
 						headers = check_for_header(headers, "content-type", "application/x-www-form-urlencoded")
@@ -494,7 +498,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 						self._logger.info("headers: " + json.dumps(headers))
 						self._logger.info("data: " + json.dumps(data))
 						self._logger.info("http_method: " + http_method + " - content_type: " + content_type)
-						response = requests.request(http_method, url, data=data, headers=headers)
+						response = requests.request(http_method, url, data=data, headers=headers, timeout=30)
 				self._logger.info("Response: " + response.text)
 				# Try to parse the response if possible.
 				code = response.status_code
