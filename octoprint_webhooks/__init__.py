@@ -335,7 +335,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					# This is a test event - show a message to the user that they need to enable this event.
 					msg = "This event is disabled. Please enable the event %s to test." % event
 					self._plugin_manager.send_plugin_message(self._identifier, dict(type="error", hide=False, msg=msg))
-				return
+				continue
 			self._logger.info("P EVENT " + topic + " - " + message)
 			# 1) If necessary, make an OAuth request to get back an access token.
 			oauth = hook["oauth"]
@@ -399,7 +399,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			if not oauth_passed:
 				# Oauth not passed
 				self._logger.info("Not sending request - OAuth not passed")
-				return
+				continue
 			# Send the notification
 			# 2) Call the API
 			parsed_headers = 0
