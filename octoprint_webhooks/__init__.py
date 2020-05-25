@@ -66,6 +66,46 @@ def replace_dict_with_data(d, v):
 			d[key] = replace_dict_with_data(value, v)
 	return d
 
+# Replaces any @param in the url with data inside the dictionary.
+# Works very similar to the function replace_dict_with_data.
+def replace_url_with_data(url, data):
+	value = url
+	while value.find("@") >= 0:
+		start_index = value.find("@")
+		# Find the end text by space
+		end_index1 = value.find("/", start_index)
+		if end_index1 == -1:
+			end_index1 = len(value)
+		end_index2 = value.find(" ", start_index)
+		if end_index2 == -1:
+			end_index2 = len(value)
+		end_index3 = value.find("?", start_index)
+		if end_index3 == -1:
+			end_index3 = len(value)
+		end_index4 = value.find("#", start_index)
+		if end_index4 == -1:
+			end_index4 = len(value)
+		end_index = min(end_index1, end_index2, end_index3, end_index4)
+		value_key = value[start_index + 1:end_index]
+		# Check for dot notation
+		components = value_key.split(".")
+		current_v = data
+		comp_found = True
+		for ic in range(0, len(components)):
+			comp = components[ic]
+			if comp in current_v:
+				current_v = current_v[comp]
+			else:
+				comp_found = False
+				break
+		if not comp_found:
+			current_v = ""
+		if start_index == 0 and end_index == len(value):
+			value = current_v
+		else:
+			value = value.replace(value[start_index:end_index], str(current_v))
+	return value
+
 # Checks for the name/value pair to make sure it matches
 # and if not sets the name/value and returns
 def check_for_header(headers, name, value):
@@ -458,6 +498,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				# 2.5) Replace the data and header elements that start with @
 				data = replace_dict_with_data(data, values)
 				headers = replace_dict_with_data(headers, values)
+				url = replace_url_with_data(url, values)
 				# 2.6) Send the request
 				response = ""
 				if http_method == "GET":
