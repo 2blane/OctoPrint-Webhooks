@@ -28,6 +28,9 @@ This determines how the data is encoded before it is sent to your server. Usuall
 will work, but on some older systems x-www-form-urlencoded might be needed.
 
 NOTE: The proper HTTP header will be set for 'Content-Type' if you don't supply one that allows the data to be sent properly. For instance, if you set the Content Type setting to JSON, then 'application/json' must appear somewhere your 'Content-Type' header. If 'application/json' does not appear in your 'Content-Type' header or is set to some other value, it will get replaced. So, you could set it to 'application/json charset=utf8;' if you wanted to, but not 'application/yoyo' as that would get replaced to 'application/json'.
+
+NOTE: If you use the @snapshot parameter (and send a snapshot image), the data will automatically be encoding using multipart/form-data and will override your settings and headers to match.
+
 #### API SECRET
 This field is optional. If you want to provide a secret key/password that you can check on the server this is the easiest way to do that. For instance, if you set the API Secret to 'abcdef123456', then on your server you can check to make sure the API Secret is 'abcdef123456'. If it is not, then the request came from something other than your OctoPrint Server and you should ignore the request (Somebody is trying to hack you!). Also, for security reasons you should set this to some long random string instead of something like 'password'.
 #### DEVICE IDENTIFIER
