@@ -31,7 +31,8 @@ $(function() {
             self.selectHook(0)
             //Get the list of available templates.
             let templates = ["simple.json", "fulldata.json", "snapshot.json",
-                "oauth.json", "dotnotation.json", "slack.json", "plivo.json"]
+                "oauth.json", "dotnotation.json", "slack.json", "plivo.json",
+                "gotify.json"]
             let callbacksLeft = templates.length;
             for (let i = 0; i < templates.length; i = i + 1) {
                 let templateFile = "plugin/webhooks/static/templates/" + templates[i]
