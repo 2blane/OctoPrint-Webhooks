@@ -1,0 +1,17 @@
+{
+  "content_type": "JSON",
+  "data": "{\n  \"title\":\"@topic\",\n  \"priority\": 5,\n  \"message\":\"@message\"\n}",
+  "eventErrorMessage": "There was an error.",
+  "eventPrintDoneMessage": "Your print is done.",
+  "eventPrintFailedMessage": "Something went wrong and your print has failed.",
+  "eventPrintPausedMessage": "Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage": "Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage": "Your print has started",
+  "eventUserActionNeededMessage": "User action needed. You might need to change the filament color.",
+  "event_print_progress_interval": "50",
+  "headers": "{\n  \"Content-Type\": \"application/json\",\n  \"X-Gotify-Key\": \"@apiSecret\"\n}",
+  "http_method": "POST",
+  "oauth": false,
+  "_name": "Gotify Message",
+  "_description": "This template will send a message to your Gotify Server. As URL enter the API Endpoint for message creation (Note: your URL should look something like https://your.gotify.server.com/message). Inside Gotify, you need to create a new application in the apps section. Copy the app token and paste it here in the field API SECRET in the Webhook Parameters section. The priority can be changed in the field DATA in the Advanced section. Now, you should be able to test out your integration and see a message appear in your gotify account."
+}
