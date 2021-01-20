@@ -224,7 +224,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 			css=["css/webhooks.css"],
 			js=["js/webhooks.js"],
 			json=["templates/simple.json", "templates/fulldata.json", "templates/snapshot.json",
-				  "templates/oauth.json", "templates/dotnotation.json", "templates/slack.json", "templates/plivo.json"]
+				  "templates/oauth.json", "templates/dotnotation.json", "templates/slack.json", "templates/plivo.json", "templates/alexa_notify_me.json"]
 		)
 
 	def register_custom_events(self, *args, **kwargs):
