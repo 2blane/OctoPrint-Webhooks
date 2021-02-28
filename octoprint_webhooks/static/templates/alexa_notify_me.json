@@ -1,0 +1,18 @@
+{
+  "url": "https://api.notifymyecho.com/v1/NotifyMe",
+  "content_type":"JSON",
+  "data":"{\n     \"notification\": \"@message\",\n     \"accessCode\":  \"TO_DO PUT YOUR ACCESS CODE HERE (will be of the form: amzn1.ask.account.HUGE_STRING)\"\n}",
+  "eventErrorMessage":"There was an error.",
+  "eventPrintDoneMessage":"Your print is done.",
+  "eventPrintFailedMessage":"Something went wrong and your print has failed.",
+  "eventPrintPausedMessage":"Your print has paused. You might need to change the filament color.",
+  "eventPrintProgressMessage":"Your print is @percentCompleteMilestone % complete.",
+  "eventPrintStartedMessage":"Your print has started",
+  "eventUserActionNeededMessage":"User action needed. You might need to change the filament color.",
+  "event_print_progress_interval":"50",
+  "headers":"{\n  \"Content-Type\": \"application/json\"\n}",
+  "http_method":"POST",
+  "oauth":false,
+  "_name":"Alexa Notification (Notify Me)",
+  "_description":"Send notifications to Alexa via the 'Notify Me' Alexa Skill. Authenication is done by setting the 'accessCode' field in the DATA header to the Notify Me access code. The field will be of the format: amzn1.ask.account.VERY LENGTHY STRING"
+ }
