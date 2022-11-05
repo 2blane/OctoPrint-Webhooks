@@ -6,6 +6,8 @@ import requests
 import time
 import sys
 
+from datetime import datetime, timedelta
+
 from io import BytesIO
 from PIL import Image
 
@@ -135,6 +137,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 					 octoprint.plugin.EventHandlerPlugin, octoprint.plugin.AssetPlugin, octoprint.plugin.SimpleApiPlugin,
 					 octoprint.plugin.ProgressPlugin):
 	def __init__(self):
+		self.last_user_action_notification = datetime.now() - timedelta(seconds=60)
 		self.triggered = False
 		self.last_print_progress = -1
 		self.last_print_progress_milestones = []
@@ -569,8 +572,12 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 		# Found keyword, fire event and block until other text is received
 		if "echo:busy: paused for user" in line:
 			if not self.triggered:
-				eventManager().fire(Events.PLUGIN_WEBHOOKS_NOTIFY)
 				self.triggered = True
+
+				if timedelta.total_seconds(datetime.now() - self.last_user_action_notification) > 60:
+					eventManager().fire(Events.PLUGIN_WEBHOOKS_NOTIFY)
+					self.last_user_action_notification = datetime.now()
+
 		# Other text, we may fire another event if we encounter "paused for user" again
 		else:
 			self.triggered = False
