@@ -6,8 +6,7 @@ import requests
 import time
 import sys
 
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from io import BytesIO
 from PIL import Image
@@ -578,7 +577,7 @@ class WebhooksPlugin(octoprint.plugin.StartupPlugin, octoprint.plugin.TemplatePl
 				if timedelta.total_seconds(datetime.now() - self.last_user_action_notification) > 60:
 					eventManager().fire(Events.PLUGIN_WEBHOOKS_NOTIFY)
 					self.last_user_action_notification = datetime.now()
-					
+
 		# Other text, we may fire another event if we encounter "paused for user" again
 		else:
 			self.triggered = False
